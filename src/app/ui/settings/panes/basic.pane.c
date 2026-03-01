@@ -117,7 +117,7 @@ static lv_obj_t *create_obj(lv_fragment_t *self, lv_obj_t *container) {
 
     pane->bitrate_label = pref_title_label(view, locstr("Video bitrate"));
 
-    unsigned int max = app->ss4s.video_cap.maxBitrate ? app->ss4s.video_cap.maxBitrate : 100000;
+    unsigned int max = 300000;
     lv_obj_t *bitrate_slider = pref_slider(view, &app_configuration->stream.bitrate, 5000, (int) max, BITRATE_STEP);
     lv_obj_set_width(bitrate_slider, LV_PCT(100));
     lv_obj_add_event_cb(bitrate_slider, on_bitrate_changed, LV_EVENT_VALUE_CHANGED, self);
@@ -139,6 +139,10 @@ static lv_obj_t *create_obj(lv_fragment_t *self, lv_obj_t *container) {
         pref_desc_label(view, locstr("Can't use windowed UI for this decoder"), false);
     }
 #endif
+
+    lv_obj_t *show_stats_checkbox = pref_checkbox(view, locstr("Show performance stats on stream start"),
+                                                   &app_configuration->show_stats_on_start, false);
+    pref_desc_label(view, locstr("Start streaming with performance overlay visible and pinned."), false);
 
 #ifdef FEATURE_I18N_LANGUAGE_SETTINGS
     lv_obj_t *lang_label = pref_title_label(view, "Language");

@@ -176,6 +176,14 @@ static bool on_event(lv_fragment_t *self, int code, void *userdata) {
             }
             lv_obj_add_flag(controller->overlay, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(controller->hint, LV_OBJ_FLAG_HIDDEN);
+            if (app_configuration->show_stats_on_start) {
+                lv_obj_set_parent(controller->stats, lv_layer_top());
+                lv_obj_align(controller->stats, LV_ALIGN_TOP_RIGHT, -LV_DPX(20), LV_DPX(20));
+                lv_obj_add_state(controller->stats, LV_STATE_USER_1);
+                lv_obj_add_state(controller->stats_pin, LV_STATE_CHECKED);
+                overlay_pinned = true;
+                streaming_refresh_stats();
+            }
             break;
         }
         case USER_STREAM_CLOSE: {

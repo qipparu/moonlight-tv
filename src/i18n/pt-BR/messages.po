@@ -47,11 +47,11 @@ msgstr "Estéreo"
 
 #: src/app/app_settings.c:34
 msgid "5.1 Surround"
-msgstr ""
+msgstr "5.1 Surround"
 
 #: src/app/app_settings.c:35
 msgid "7.1 Surround"
-msgstr ""
+msgstr "7.1 Surround"
 
 #: src/app/platform/common/i18n_common.c:6
 msgid "System Language"
@@ -67,7 +67,7 @@ msgstr "Ajuda"
 
 #: src/app/ui/help/help.dialog.c:36
 msgid "Input"
-msgstr ""
+msgstr "Entrada"
 
 #: src/app/ui/help/help.dialog.c:37
 msgid "Gamepad hotkeys"
@@ -79,7 +79,7 @@ msgstr "Teclas do controle remoto"
 
 #: src/app/ui/help/help.dialog.c:41
 msgid "More help"
-msgstr ""
+msgstr "Mais ajuda"
 
 #: src/app/ui/help/help.dialog.c:42
 msgid "Open moonlight-tv Wiki"
@@ -95,7 +95,7 @@ msgstr "Endereço IP"
 
 #: src/app/ui/launcher/add.dialog.c:62
 msgid "IPv4 or IPv6 address"
-msgstr ""
+msgstr "Endereço IPv4 ou IPv6"
 
 #: src/app/ui/launcher/add.dialog.c:81
 msgid "Failed to add computer."
@@ -136,7 +136,7 @@ msgstr "Não pareado"
 
 #: src/app/ui/launcher/apps.controller.c:405
 msgid "Press \"Pair\" to pair this host with your account."
-msgstr ""
+msgstr "Pressione \"Parear\" para vincular este host à sua conta."
 
 #. server has error
 #: src/app/ui/launcher/apps.controller.c:415
@@ -151,8 +151,8 @@ msgstr "Desconectado"
 #: src/app/ui/launcher/apps.controller.c:427
 msgid "Press \"Wake\" to send Wake-on-LAN packet to turn the computer on if it supports this feature, press \"Retry\" to connect again.\n\n"
 "Try restart your computer if these doesn't work."
-msgstr "Pressione \"acordar\" para enviar um pacote Wake-on-LAN para ligar o seu computador se ele suportar o recurso, pressione \"Tentar Novamente\" para conectar novamente.\n\n"
-"Tentei reiniciar o comportador se isso não funcionar."
+msgstr "Pressione \"Acordar\" para enviar um pacote Wake-on-LAN para ligar o computador (se suportado), ou \"Tentar novamente\" para reconectar.\n\n"
+"Tente reiniciar o computador se isso não funcionar."
 
 #: src/app/ui/launcher/apps.controller.c:596
 msgid "Quitting game..."
@@ -206,7 +206,8 @@ msgstr "Nenhum decodificador funcionando"
 #: src/app/ui/launcher/launcher.controller.c:472
 msgid "Streaming can't work without a valid decoder.\n"
 "(If your device supports moonlight-embedded, install it and Moonlight will use it automatically.)"
-msgstr ""
+msgstr "A transmissão não funciona sem um decodificador válido.\n"
+"(Se seu dispositivo suporta moonlight-embedded, instale-o e o Moonlight usará automaticamente.)"
 
 #: src/app/ui/launcher/launcher.controller.c:476
 msgid "Streaming can't work without a valid decoder."
@@ -214,12 +215,13 @@ msgstr "A transmissão não funciona sem um decodificador válido."
 
 #: src/app/ui/launcher/launcher.controller.c:483
 msgid "Can't save settings"
-msgstr ""
+msgstr "Não foi possível salvar as configurações"
 
 #: src/app/ui/launcher/launcher.controller.c:486
 msgid "Can't find a writable directory to save settings. Settings and pairing information will be lost when the TV is turned off.\n\n"
 "(If you're using webOS 3.0 or newer, restart the TV may fix this issue.)"
-msgstr ""
+msgstr "Não foi possível encontrar um diretório gravável para salvar as configurações. As configurações e informações de pareamento serão perdidas quando a TV for desligada.\n\n"
+"(Se estiver usando webOS 3.0 ou mais recente, reiniciar a TV pode corrigir este problema.)"
 
 #. Use list button for normal container
 #: src/app/ui/launcher/launcher.view.c:107
@@ -246,7 +248,7 @@ msgstr "Insira o código PIN no seu computador."
 
 #: src/app/ui/launcher/server.context_menu.c:79
 msgid "Show hidden apps"
-msgstr "Mostar apps ocultos"
+msgstr "Mostrar apps ocultos"
 
 #: src/app/ui/launcher/server.context_menu.c:84
 msgid "Forget"
@@ -310,7 +312,7 @@ msgstr "Backend de áudio - usando %s"
 #: src/app/ui/settings/panes/audio.pane.c:110
 #: src/app/ui/settings/settings.controller.c:24
 msgid "Audio Settings"
-msgstr ""
+msgstr "Configurações de áudio"
 
 #: src/app/ui/settings/panes/audio.pane.c:112
 msgid "Sound Channels (Experimental)"
@@ -318,12 +320,12 @@ msgstr "Canais de Som (Experimental)"
 
 #: src/app/ui/settings/panes/av_pane.c:29
 msgid "Moonlight embedded will pick the suitable decoder automatically"
-msgstr ""
+msgstr "O Moonlight embedded escolherá o decodificador adequado automaticamente"
 
 #: src/app/ui/settings/panes/av_pane.c:50
 #, c-format
 msgid "%s is conflicting with %s"
-msgstr ""
+msgstr "%s está em conflito com %s"
 
 #: src/app/ui/settings/panes/basic.pane.c:95
 msgid "Resolution and FPS"
@@ -339,7 +341,7 @@ msgstr "Tela cheia"
 
 #: src/app/ui/settings/panes/basic.pane.c:166
 msgid "Can't use windowed UI for this decoder"
-msgstr ""
+msgstr "Não é possível usar interface em janela com este decodificador"
 
 #: src/app/ui/settings/panes/basic.pane.c:172
 #: src/app/ui/settings/panes/basic.pane.c:173
@@ -358,6 +360,14 @@ msgstr "Bitrate de vídeo - %d kbps"
 #: src/app/ui/settings/panes/basic.pane.c:228
 msgid "Higher bitrate may cause performance issue, try with caution."
 msgstr "Bitrate maior pode causar problema de performance, experimente com cuidado."
+
+#: src/app/ui/settings/panes/basic.pane.c:140
+msgid "Show performance stats on stream start"
+msgstr "Exibir status de desempenho ao iniciar o streaming"
+
+#: src/app/ui/settings/panes/basic.pane.c:141
+msgid "Start streaming with performance overlay visible and pinned."
+msgstr "Iniciar o streaming com o painel de desempenho visível e fixado."
 
 #: src/app/ui/settings/panes/host.pane.c:26
 msgid "Optimize game settings for streaming"
@@ -381,15 +391,15 @@ msgstr "Não envia mouse, teclado ou controle para o computador host."
 
 #: src/app/ui/settings/panes/input.pane.c:49
 msgid "Capture system keys"
-msgstr ""
+msgstr "Capturar teclas do sistema"
 
 #: src/app/ui/settings/panes/input.pane.c:50
 msgid "Capture and send system keys (e.g. Meta/Win key) to host computer."
-msgstr ""
+msgstr "Capturar e enviar teclas do sistema (ex.: tecla Win/Meta) ao computador host."
 
 #: src/app/ui/settings/panes/input.pane.c:52
 msgid "Mouse"
-msgstr ""
+msgstr "Mouse"
 
 #: src/app/ui/settings/panes/input.pane.c:55
 msgid "Use mouse hardware"
@@ -449,15 +459,15 @@ msgstr "Decodificador de vídeo - usando %s"
 #: src/app/ui/settings/panes/video.pane.c:93
 #: src/app/ui/settings/settings.controller.c:25
 msgid "Video Settings"
-msgstr ""
+msgstr "Configurações de vídeo"
 
 #: src/app/ui/settings/panes/video.pane.c:95
 msgid "Use H265 when possible"
-msgstr ""
+msgstr "Usar H.265 quando possível"
 
 #: src/app/ui/settings/panes/video.pane.c:99
 msgid "H265 usually has better graphics, and supports HDR."
-msgstr ""
+msgstr "H.265 geralmente tem melhor qualidade gráfica e suporta HDR."
 
 #: src/app/ui/settings/panes/video.pane.c:102
 #, c-format
@@ -466,20 +476,20 @@ msgstr "Decodificador %s não suporta o codec H265"
 
 #: src/app/ui/settings/panes/video.pane.c:106
 msgid "Use AV1 when possible (Experimental)"
-msgstr ""
+msgstr "Usar AV1 quando possível (Experimental)"
 
 #: src/app/ui/settings/panes/video.pane.c:111
 msgid "AV1 usually has better graphics, and supports HDR. However, it might be much slower than H265 or H264."
-msgstr ""
+msgstr "AV1 geralmente tem melhor qualidade gráfica e suporta HDR. Porém, pode ser bem mais lento que H.265 ou H.264."
 
 #: src/app/ui/settings/panes/video.pane.c:115
 #, c-format
 msgid "%s decoder doesn't support AV1 codec."
-msgstr ""
+msgstr "O decodificador %s não suporta o codec AV1."
 
 #: src/app/ui/settings/panes/video.pane.c:119
 msgid "HDR"
-msgstr ""
+msgstr "HDR"
 
 #: src/app/ui/settings/panes/video.pane.c:126
 msgid "Learn more about HDR feature."
@@ -492,7 +502,7 @@ msgstr "Decodificador %s não suporta HDR."
 
 #: src/app/ui/settings/panes/video.pane.c:163
 msgid "H265 or AV1 is required to use HDR."
-msgstr ""
+msgstr "H.265 ou AV1 é necessário para usar HDR."
 
 #: src/app/ui/settings/panes/video.pane.c:166
 msgid "HDR is only supported on certain games and when connecting to supported monitor."
@@ -524,19 +534,19 @@ msgstr "Algumas configurações requerem uma reinicialização para ter efeito."
 
 #: src/app/ui/streaming/hints.c:9
 msgid "Long press BACK (or press EXIT for traditional TV remote) while streaming, to open status overlay."
-msgstr ""
+msgstr "Mantenha BACK pressionado (ou EXIT no controle tradicional) durante o streaming para abrir o painel de status."
 
 #: src/app/ui/streaming/hints.c:10
 msgid "Frequent lagging on 5GHz Wi-Fi? Try changing to another channel, check Help for details."
-msgstr ""
+msgstr "Lag frequente no Wi-Fi 5GHz? Tente mudar para outro canal, veja Ajuda para detalhes."
 
 #: src/app/ui/streaming/hints.c:11
 msgid "Xbox One/Series controller can't be directly connected via cable or official adapter."
-msgstr ""
+msgstr "Controle Xbox One/Series não pode ser conectado diretamente via cabo ou adaptador oficial."
 
 #: src/app/ui/streaming/hints.c:13
 msgid "If you have ultra-wide monitor, you may need to change its resolution to fit 16:9 for streaming."
-msgstr ""
+msgstr "Se você tem monitor ultrawide, pode precisar alterar a resolução para 16:9 no streaming."
 
 #: src/app/ui/streaming/streaming.controller.c:147
 msgid "Connecting..."
@@ -569,5 +579,5 @@ msgstr "Fechar o jogo"
 
 #: src/app/ui/streaming/streaming.view.c:120
 msgid "Performance"
-msgstr ""
+msgstr "Desempenho"
 

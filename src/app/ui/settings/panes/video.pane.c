@@ -116,6 +116,12 @@ static lv_obj_t *create_obj(lv_fragment_t *self, lv_obj_t *container) {
                               SS4S_ModuleInfoGetName(app->ss4s.selection.video_module));
     }
 
+    lv_obj_t *yuv422_checkbox = pref_checkbox(view, locstr("4:2:2 chroma (H.265/AV1)"), &app_configuration->yuv422, false);
+    pref_desc_label(view, locstr("4:2:2 chroma subsampling for better text clarity. Requires H.265 or AV1."), false);
+    if (!(app->ss4s.video_cap.codecs & (SS4S_VIDEO_H265 | SS4S_VIDEO_AV1))) {
+        lv_obj_add_state(yuv422_checkbox, LV_STATE_DISABLED);
+    }
+
     lv_obj_t *hdr_checkbox = pref_checkbox(view, locstr("HDR"), &app_configuration->hdr, false);
     lv_obj_t *hdr_hint = pref_desc_label(view, NULL, false);
     controller->hdr_checkbox = hdr_checkbox;

@@ -270,9 +270,6 @@ void session_config_init(app_t *app, session_config_t *config, const SERVER_DATA
         config->stream.bitrate = settings_optimal_bitrate(&video_cap, config->stream.width, config->stream.height,
                                                           config->stream.fps);
     }
-    if (video_cap.maxBitrate && config->stream.bitrate > video_cap.maxBitrate) {
-        config->stream.bitrate = (int) video_cap.maxBitrate;
-    }
     if (video_cap.codecs & SS4S_VIDEO_H264) {
         config->stream.supportedVideoFormats |= VIDEO_FORMAT_H264;
     }
@@ -288,6 +285,7 @@ void session_config_init(app_t *app, session_config_t *config, const SERVER_DATA
             config->stream.supportedVideoFormats |= VIDEO_FORMAT_AV1_MAIN10;
         }
     }
+    config->stream.requestedChromaSubsampling = app_config->yuv422 ? 2 : 0;
     // If no video format is supported, default to H.264
     if (config->stream.supportedVideoFormats == 0) {
         config->stream.supportedVideoFormats = VIDEO_FORMAT_H264;
@@ -322,9 +320,6 @@ void session_config_init(app_t *app, session_config_t *config, const SERVER_DATA
     /* HDR 10-bit precisa de ~25% mais bitrate que SDR para mesma qualidade em cenas complexas */
     if (app_config->hdr && (config->stream.supportedVideoFormats & (VIDEO_FORMAT_H265_MAIN10 | VIDEO_FORMAT_AV1_MAIN10))) {
         config->stream.bitrate = (int) ((int64_t) config->stream.bitrate * 125 / 100);
-        if (video_cap.maxBitrate && config->stream.bitrate > video_cap.maxBitrate) {
-            config->stream.bitrate = (int) video_cap.maxBitrate;
-        }
     }
     config->stream.encryptionFlags = ENCFLG_AUDIO;
 }
