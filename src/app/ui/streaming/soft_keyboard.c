@@ -19,13 +19,13 @@
 #define MOD_META  0x08
 
 /* Modifier VKs that toggle; use left-side variants for simplicity */
-#define VK_SHIFT      VK_LSHIFT
-#define VK_CTRL       VK_LCONTROL
-#define VK_ALT        VK_LMENU
-#define VK_CLOSE_BTN  0  /* Sentinel for close button in btnmatrix */
+#define VK_SHIFT  VK_LSHIFT
+#define VK_CTRL   VK_LCONTROL
+#define VK_ALT    VK_LMENU
 
 typedef struct {
     lv_obj_t *container;
+    lv_obj_t *close_btn;
     lv_group_t *group;
     stream_input_t *input;
     bool toggle_shift;
@@ -56,6 +56,12 @@ static void release_toggles(soft_kbd_t *kbd) {
     if (kbd->toggle_win)   { kbd->toggle_win = false;   send_key(kbd, VK_LWIN, false); }
 }
 
+static void on_close_click(lv_event_t *e) {
+    soft_kbd_t *kbd = lv_event_get_user_data(e);
+    release_toggles(kbd);
+    if (kbd->on_close) kbd->on_close(kbd->on_close_userdata);
+}
+
 typedef struct {
     soft_kbd_t *kbd;
     short *vks;
@@ -65,20 +71,14 @@ typedef struct {
 static void on_keyboard_click(lv_event_t *e) {
     kbd_data_t *kd = lv_event_get_user_data(e);
     uint32_t *btn_id_ptr = lv_event_get_param(e);
-    uint16_t btn_id = (btn_id_ptr != NULL) ? (uint16_t) *btn_id_ptr : lv_btnmatrix_get_selected_btn(lv_event_get_target(e));
+    uint16_t btn_id = (btn_id_ptr != NULL) ? (uint16_t) *btn_id_ptr
+                                           : lv_btnmatrix_get_selected_btn(lv_event_get_target(e));
     if (btn_id == LV_BTNMATRIX_BTN_NONE) return;
-    /* Row 4+ (indices 48+) report btn_id + 1 due to column misalignment between rows */
-    uint16_t vk_idx = (btn_id >= 48) ? btn_id - 1 : btn_id;
+    /* Row 4+ (indices 47+) report btn_id + 1 due to column misalignment between rows */
+    uint16_t vk_idx = (btn_id >= 47) ? btn_id - 1 : btn_id;
     if (vk_idx >= (uint16_t) kd->vk_count) return;
     short vk = kd->vks[vk_idx];
-    if (vk == 0 || vk == VK_CLOSE_BTN) {
-        if (vk == VK_CLOSE_BTN) {
-            soft_kbd_t *kbd = kd->kbd;
-            release_toggles(kbd);
-            if (kbd->on_close) kbd->on_close(kbd->on_close_userdata);
-        }
-        return;
-    }
+    if (vk == 0) return;
 
     soft_kbd_t *kbd = kd->kbd;
     if (vk == VK_SHIFT || vk == VK_RSHIFT) {
@@ -127,9 +127,9 @@ lv_group_t *soft_keyboard_get_group(lv_obj_t *keyboard_container) {
     return kbd ? kbd->group : NULL;
 }
 
-/* Single btnmatrix: close + keys, unified D-pad navigation (no Select needed) */
+/* Single btnmatrix map: all rows in one grid for direct up/down/left/right key navigation */
 static const char *kbd_map[] = {
-    "X","ESC","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12",
+    "ESC","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12",
     "\n",
     "`","1","2","3","4","5","6","7","8","9","0","-","=", LV_SYMBOL_BACKSPACE, "Ins","Home","PgUp",
     "\n",
@@ -146,7 +146,7 @@ static const char *kbd_map[] = {
 };
 
 static const short kbd_vks[] = {
-    VK_CLOSE_BTN,VK_ESCAPE,VK_F1,VK_F2,VK_F3,VK_F4,VK_F5,VK_F6,VK_F7,VK_F8,VK_F9,VK_F10,VK_F11,VK_F12,
+    VK_ESCAPE,VK_F1,VK_F2,VK_F3,VK_F4,VK_F5,VK_F6,VK_F7,VK_F8,VK_F9,VK_F10,VK_F11,VK_F12,
     VK_OEM_3,VK_1,VK_2,VK_3,VK_4,VK_5,VK_6,VK_7,VK_8,VK_9,VK_0,VK_OEM_MINUS,VK_OEM_PLUS,VK_BACK,VK_INSERT,VK_HOME,VK_PRIOR,
     VK_TAB,VK_Q,VK_W,VK_E,VK_R,VK_T,VK_U,VK_I,VK_O,VK_P,VK_OEM_4,VK_OEM_6,VK_OEM_5,VK_DELETE,VK_END,VK_NEXT,
     VK_CAPITAL,VK_A,VK_S,VK_D,VK_F,VK_G,VK_H,VK_J,VK_K,VK_L,VK_OEM_1,VK_OEM_7,VK_RETURN,
@@ -188,7 +188,21 @@ lv_obj_t *soft_keyboard_create(lv_obj_t *parent, session_t *session,
     lv_obj_clear_flag(kbd_content, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_align(kbd_content, LV_ALIGN_BOTTOM_MID, 0, -LV_DPX(24));  /* Near bottom of screen */
 
-    /* Single btnmatrix: close (X) + keys - D-pad navigates all, no Select needed */
+    /* Close button - at top so always visible */
+    lv_obj_t *close = lv_btn_create(kbd_content);
+    lv_group_add_obj(kbd->group, close);
+    lv_obj_set_size(close, LV_DPX(80), LV_DPX(36));
+    lv_obj_set_style_radius(close, LV_DPX(6), 0);
+    lv_obj_set_style_bg_color(close, lv_palette_main(LV_PALETTE_RED), 0);
+    lv_obj_set_style_outline_width(close, LV_DPX(2), LV_STATE_FOCUSED);
+    lv_obj_set_style_outline_color(close, lv_palette_main(LV_PALETTE_BLUE), LV_STATE_FOCUSED);
+    lv_obj_t *close_lbl = lv_label_create(close);
+    lv_label_set_text(close_lbl, "X");
+    lv_obj_center(close_lbl);
+    lv_obj_add_event_cb(close, on_close_click, LV_EVENT_CLICKED, kbd);
+    kbd->close_btn = close;
+
+    /* Single btnmatrix: all keys in one grid - D-pad navigates across keys */
     kbd_data_t *kd = malloc(sizeof(kbd_data_t));
     if (!kd) { lv_obj_del(cont); return cont; }
     kd->kbd = kbd;

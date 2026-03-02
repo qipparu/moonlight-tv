@@ -366,7 +366,10 @@ static void suspend_streaming(lv_event_t *event) {
 static void soft_keyboard_close_cb(void *userdata) {
     streaming_controller_t *controller = userdata;
     app_input_set_group(&controller->global->ui.input, controller->group);
-    session_screen_keyboard_closed(controller->global->session);
+    /* Guard against session already having been destroyed (e.g. Alt+F4 closed the game) */
+    if (controller->global->session) {
+        session_screen_keyboard_closed(controller->global->session);
+    }
     if (controller->soft_kbd) {
         lv_obj_del(controller->soft_kbd);
         controller->soft_kbd = NULL;
