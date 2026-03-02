@@ -17,6 +17,7 @@
 #include "util/user_event.h"
 #include "util/font.h"
 
+#include <SDL.h>
 #include <SDL_image.h>
 
 #include "logging_ext_lvgl.h"
@@ -75,6 +76,16 @@ void app_ui_open(app_ui_t *ui, bool open_launcher, const app_launch_params_t *pa
     }
     if (ui->window == NULL) {
         ui->window = app_ui_create_window(ui);
+#ifdef TARGET_WEBOS
+        /* Display warmup at first window creation - helps compositor be ready
+         * for 120Hz when streaming starts. Reduces need to restart app 2-3x. */
+        if (app_configuration->stream.fps >= 90) {
+            for (int i = 0; i < 4; i++) {
+                SDL_PumpEvents();
+                SDL_Delay(25);  /* ~100ms at app startup */
+            }
+        }
+#endif
     }
     lv_disp_drv_t *driver = lv_app_disp_drv_create(ui->window, ui->dpi);
     lv_disp_t *disp = lv_disp_drv_register(driver);
@@ -153,6 +164,17 @@ bool ui_dispatch_userevent(app_t *app, int which, void *data1, void *data2) {
     if (!handled) {
         switch (which) {
             case USER_STREAM_OPEN: {
+#ifdef TARGET_WEBOS
+                /* Display stabilization: webOS compositor may need time to switch to
+                 * 120Hz. Multiple pump+delay cycles help avoid intermittent <60fps
+                 * on first app launch (user sometimes needs to restart app 2-3x). */
+                if (app_configuration->stream.fps >= 90) {
+                    for (int i = 0; i < 5; i++) {
+                        SDL_PumpEvents();
+                        SDL_Delay(30);  /* ~150ms - compositor settle before first frame */
+                    }
+                }
+#endif
                 if (app->ss4s.video_cap.transform & SS4S_VIDEO_CAP_TRANSFORM_UI_EXCLUSIVE) {
                     SDL_ShowCursor(SDL_FALSE);
                 } else {
@@ -214,7 +236,7 @@ bool ui_dispatch_userevent(app_t *app, int which, void *data1, void *data2) {
 }
 
 bool ui_should_block_input() {
-    return streaming_overlay_shown();
+    return streaming_overlay_shown() || streaming_soft_keyboard_shown();
 }
 
 void ui_display_size(app_ui_t *ui, int width, int height) {

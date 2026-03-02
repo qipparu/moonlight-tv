@@ -369,6 +369,14 @@ msgstr "Exibir status de desempenho ao iniciar o streaming"
 msgid "Start streaming with performance overlay visible and pinned."
 msgstr "Iniciar o streaming com o painel de desempenho visível e fixado."
 
+#: src/app/ui/settings/panes/basic.pane.c:147
+msgid "Compact performance stats (single line)"
+msgstr "Status de desempenho compacto (uma linha)"
+
+#: src/app/ui/settings/panes/basic.pane.c:148
+msgid "Show minimalist one-line stats like Moonlight Android (FPS, RTT, bitrate)."
+msgstr "Exibir status minimalista em uma linha como no Moonlight Android (FPS, latência, bitrate)."
+
 #: src/app/ui/settings/panes/host.pane.c:26
 msgid "Optimize game settings for streaming"
 msgstr "Otimizar configurações do jogo para streaming"

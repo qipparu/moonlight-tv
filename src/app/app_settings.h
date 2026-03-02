@@ -52,6 +52,7 @@ typedef struct app_settings_t {
     bool av1;
     bool yuv422;
     bool show_stats_on_start;
+    bool show_stats_compact;
     int stick_deadzone;
 
     char *conf_dir;

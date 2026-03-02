@@ -31,8 +31,11 @@ typedef struct {
         lv_obj_t *host_latency;
         lv_obj_t *vdec_latency;
     } stats_items;
+    lv_obj_t *stats_compact_label;  /* Single-line stats when show_stats_compact */
+    lv_obj_t *stats_quality_indicator;  /* Colored dot: green/yellow/red by latency */
     lv_obj_t *stats_pin;
     lv_obj_t *notice, *notice_label;
+    lv_obj_t *soft_kbd;
     lv_style_t overlay_button_style;
     lv_style_t overlay_button_style_focused;
     lv_style_t overlay_button_label_style;
@@ -57,6 +60,8 @@ void streaming_styles_reset(streaming_controller_t *controller);
 void streaming_overlay_resized(streaming_controller_t *controller);
 
 bool streaming_overlay_shown();
+
+bool streaming_soft_keyboard_shown();
 
 bool streaming_stats_shown();
 

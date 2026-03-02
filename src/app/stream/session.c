@@ -79,6 +79,10 @@ session_t *session_create(app_t *app, const CONFIGURATION *config, const SERVER_
     return session;
 }
 
+stream_input_t *session_get_input(session_t *session) {
+    return &session->input;
+}
+
 void session_destroy(session_t *session) {
     session_interrupt(session, false, STREAMING_INTERRUPT_QUIT);
     session_input_deinit(&session->input);

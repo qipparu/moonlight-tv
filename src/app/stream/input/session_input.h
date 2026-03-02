@@ -61,6 +61,9 @@ void stream_input_handle_key(stream_input_t *input, const SDL_KeyboardEvent *eve
 
 void stream_input_handle_text(stream_input_t *input, const SDL_TextInputEvent *event);
 
+/** Send a keyboard event directly to the host (for soft keyboard). Bypasses SDL. */
+void stream_input_send_key_event(stream_input_t *input, short keyCode, bool keyDown, char modifiers);
+
 void stream_input_handle_cbutton(stream_input_t *input, const SDL_ControllerButtonEvent *event);
 
 void stream_input_handle_caxis(stream_input_t *input, const SDL_ControllerAxisEvent *event);

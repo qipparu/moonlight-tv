@@ -1,4 +1,5 @@
 #include "streaming.controller.h"
+#include "app.h"
 
 #include "util/i18n.h"
 #include "util/font.h"
@@ -35,15 +36,16 @@ lv_obj_t *streaming_scene_create(lv_fragment_t *self, lv_obj_t *parent) {
     lv_obj_clear_flag(overlay, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_size(overlay, LV_PCT(100), LV_PCT(100));
 
-    int stats_w = LV_DPX(384);
+    int stats_w = app_configuration->show_stats_compact ? 0 : LV_DPX(384);
     lv_disp_t *disp = lv_disp_get_default();
-    int video_w = lv_disp_get_hor_res(disp) - LV_DPX(20) * 2 - LV_DPX(30) - stats_w;
+    int video_w = lv_disp_get_hor_res(disp) - LV_DPX(20) * 2 - (stats_w ? LV_DPX(30) + stats_w : 0);
     int video_h_pct = video_w * 100 / lv_disp_get_hor_res(disp);
 
     lv_obj_t *video = lv_obj_create(overlay);
     lv_obj_remove_style_all(video);
     lv_obj_set_size(video, video_w, LV_PCT(video_h_pct));
-    lv_obj_align(video, LV_ALIGN_TOP_LEFT, LV_DPX(20), LV_DPX(20));
+    int video_top = app_configuration->show_stats_compact ? LV_DPX(36) : LV_DPX(20);
+    lv_obj_align(video, LV_ALIGN_TOP_LEFT, LV_DPX(20), video_top);
     lv_obj_clear_flag(video, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_t *actions = lv_obj_create(overlay);
@@ -116,24 +118,73 @@ lv_obj_t *streaming_scene_create(lv_fragment_t *self, lv_obj_t *parent) {
     lv_obj_set_style_bg_color(stats, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(stats, LV_OPA_40, 0);
     lv_obj_set_style_bg_opa(stats, LV_OPA_30, LV_STATE_USER_1);
-    lv_obj_set_style_pad_bottom(stats, LV_DPX(10), 0);
-    lv_obj_set_size(stats, stats_w, LV_SIZE_CONTENT);
-    lv_obj_set_flex_flow(stats, LV_FLEX_FLOW_ROW_WRAP);
-    lv_obj_align(stats, LV_ALIGN_TOP_RIGHT, -LV_DPX(20), LV_DPX(20));
     lv_obj_set_user_data(stats, controller);
 
-    overlay_title(stats, locstr("Performance"), controller);
+    if (app_configuration->show_stats_compact) {
+        /* Artemis lite mode: slim horizontal bar at top, full width, single line */
+        lv_obj_set_size(stats, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_flex_flow(stats, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(stats, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_style_pad_hor(stats, LV_DPX(12), 0);
+        lv_obj_set_style_pad_ver(stats, LV_DPX(6), 0);
+        lv_obj_set_style_pad_bottom(stats, LV_DPX(6), 0);
+        lv_obj_align(stats, LV_ALIGN_TOP_LEFT, 0, 0);
 
-    controller->stats_items.decoder = stat_label(stats, "Video");
-    controller->stats_items.audio = stat_label(stats, "Audio");
+        /* Quality indicator as colored label (●): green/yellow/red by latency */
+        lv_obj_t *quality_dot = lv_label_create(stats);
+        lv_label_set_text(quality_dot, "\u25CF");  /* ● U+25CF BLACK CIRCLE */
+        lv_obj_set_style_text_color(quality_dot, lv_palette_main(LV_PALETTE_GREEN), 0);
+        lv_obj_set_style_text_font(quality_dot, lv_theme_get_font_small(stats), 0);
+        controller->stats_quality_indicator = quality_dot;
 
-    controller->stats_items.rtt = stat_label(stats, "Network RTT");
-    controller->stats_items.net_fps = stat_label(stats, "Network framerate");
-    controller->stats_items.render_fps = stat_label(stats, "Render framerate");
-    controller->stats_items.drop_rate = stat_label(stats, "Network frame drop");
-    controller->stats_items.bitrate = stat_label(stats, "Bitrate");
-    controller->stats_items.host_latency = stat_label(stats, "Host processing latency");
-    controller->stats_items.vdec_latency = stat_label(stats, "Decoder latency");
+        controller->stats_compact_label = lv_label_create(stats);
+        lv_label_set_text(controller->stats_compact_label, "-");
+        lv_obj_set_style_text_font(controller->stats_compact_label, lv_theme_get_font_small(stats), 0);
+        lv_obj_set_flex_grow(controller->stats_compact_label, 1);
+
+        /* Pin button inline, minimal */
+        lv_obj_t *stats_pin = lv_btn_create(stats);
+        lv_group_remove_obj(stats_pin);
+        lv_obj_add_flag(stats_pin, LV_OBJ_FLAG_CHECKABLE);
+        lv_obj_set_style_bg_opa(stats_pin, LV_OPA_TRANSP, 0);
+        lv_obj_set_style_border_opa(stats_pin, LV_OPA_TRANSP, 0);
+        lv_obj_set_style_pad_all(stats_pin, LV_DPX(4), 0);
+        lv_obj_set_style_radius(stats_pin, LV_DPX(4), 0);
+        lv_obj_set_style_text_opa(stats_pin, LV_OPA_50, 0);
+        lv_obj_set_style_text_opa(stats_pin, LV_OPA_COVER, LV_STATE_CHECKED);
+        lv_obj_set_ext_click_area(stats_pin, LV_DPX(5));
+        lv_obj_t *stat_pin_content = lv_img_create(stats_pin);
+        lv_obj_set_style_text_font(stat_pin_content, lv_theme_moonlight_get_iconfont_small(stats_pin), 0);
+        lv_img_set_src(stat_pin_content, MAT_SYMBOL_PUSH_PIN);
+        controller->stats_pin = stats_pin;
+
+        controller->stats_items.decoder = NULL;
+        controller->stats_items.audio = NULL;
+        controller->stats_items.rtt = NULL;
+        controller->stats_items.net_fps = NULL;
+        controller->stats_items.render_fps = NULL;
+        controller->stats_items.drop_rate = NULL;
+        controller->stats_items.bitrate = NULL;
+        controller->stats_items.host_latency = NULL;
+        controller->stats_items.vdec_latency = NULL;
+    } else {
+        lv_obj_set_size(stats, LV_DPX(384), LV_SIZE_CONTENT);
+        lv_obj_set_flex_flow(stats, LV_FLEX_FLOW_ROW_WRAP);
+        lv_obj_set_style_pad_bottom(stats, LV_DPX(10), 0);
+        lv_obj_align(stats, LV_ALIGN_TOP_RIGHT, -LV_DPX(20), LV_DPX(20));
+        overlay_title(stats, locstr("Performance"), controller);
+        controller->stats_compact_label = NULL;
+        controller->stats_quality_indicator = NULL;
+        controller->stats_items.decoder = stat_label(stats, "Video");
+        controller->stats_items.audio = stat_label(stats, "Audio");
+        controller->stats_items.rtt = stat_label(stats, "Network RTT");
+        controller->stats_items.net_fps = stat_label(stats, "Network framerate");
+        controller->stats_items.render_fps = stat_label(stats, "Render framerate");
+        controller->stats_items.drop_rate = stat_label(stats, "Network frame drop");
+        controller->stats_items.bitrate = stat_label(stats, "Bitrate");
+        controller->stats_items.host_latency = stat_label(stats, "Host processing latency");
+        controller->stats_items.vdec_latency = stat_label(stats, "Decoder latency");
+    }
 
 
     lv_obj_add_flag(overlay, LV_OBJ_FLAG_HIDDEN);

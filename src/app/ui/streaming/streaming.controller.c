@@ -1,6 +1,9 @@
 #include "app.h"
 #include "app_session.h"
 #include "streaming.controller.h"
+#include "soft_keyboard.h"
+
+#include <SDL.h>
 #include "stream/video/session_video.h"
 #include "ui/root.h"
 #include "ui/common/progress_dialog.h"
@@ -9,6 +12,8 @@
 #include "util/user_event.h"
 #include "util/i18n.h"
 #include "logging.h"
+
+#include <string.h>
 
 static void exit_streaming(lv_event_t *event);
 
@@ -19,6 +24,8 @@ static void open_keyboard(lv_event_t *event);
 static void toggle_vmouse(lv_event_t *event);
 
 static void hide_overlay(lv_event_t *event);
+
+static void on_cancel_key(lv_event_t *event);
 
 static bool show_overlay(streaming_controller_t *controller);
 
@@ -58,6 +65,10 @@ bool streaming_overlay_shown() {
     return overlay_showing;
 }
 
+bool streaming_soft_keyboard_shown() {
+    return current_controller != NULL && current_controller->soft_kbd != NULL;
+}
+
 bool streaming_stats_shown() {
     return overlay_showing || overlay_pinned;
 }
@@ -71,6 +82,55 @@ bool streaming_refresh_stats() {
     app_t *app = controller->global;
     const struct VIDEO_STATS *dst = &vdec_summary_stats;
     const struct VIDEO_INFO *info = &vdec_stream_info;
+
+    if (controller->stats_compact_label != NULL) {
+        /* Expanded one-line stats: codec, resolution, HDR, network/decoder latency, FPS, bitrate */
+        float renderFps = dst->decodedFps;
+#if defined(TARGET_WEBOS)
+        int displayRate = 0;
+        if (SDL_webOSGetRefreshRate(&displayRate) && displayRate > 0 && renderFps > (float) displayRate) {
+            renderFps = (float) displayRate;
+        }
+#else
+        SDL_DisplayMode mode;
+        if (SDL_GetCurrentDisplayMode(0, &mode) == 0 && mode.refresh_rate > 0
+            && renderFps > (float) mode.refresh_rate) {
+            renderFps = (float) mode.refresh_rate;
+        }
+#endif
+        float netMs = (float) dst->rtt;
+        float hostMs = 0.0f;
+        float decMs = 0.0f;
+        if (dst->submittedFrames) {
+            if (vdec_stream_info.has_host_latency) {
+                hostMs = (float) dst->totalCaptureLatency / (float) dst->submittedFrames / 10.0f;
+            }
+            if (vdec_stream_info.has_decoder_latency) {
+                float avgSubmitTime = (float) dst->totalSubmitTime / (float) dst->submittedFrames;
+                decMs = avgSubmitTime + dst->avgDecoderLatency;
+            }
+        }
+        float totalMs = netMs + hostMs + decMs;
+        const char *codec = vdec_stream_info.format ? vdec_stream_info.format : "-";
+        int w = info->width > 0 ? info->width : 0;
+        int h = info->height > 0 ? info->height : 0;
+        const char *hdr_str = app_configuration->hdr ? "HDR" : "-";
+        const char *ch = audio_stream_info.channels ? audio_stream_info.channels : "-";
+        const char *aud = (strcmp(ch, "Stereo") == 0) ? "S" : (strcmp(ch, "5.1ch") == 0) ? "5.1" : (strcmp(ch, "7.1ch") == 0) ? "7.1" : ch;
+        lv_label_set_text_fmt(controller->stats_compact_label,
+                              "%s %dx%d %s | Net:%.0f Host:%.0f Dec:%.0f TL:%.0fms | %.0f FPS | %u Mbps | %s",
+                              codec, w, h, hdr_str, netMs, hostMs, decMs, totalMs, renderFps,
+                              dst->currentBitrateKbps / 1000000, aud);
+        /* Quality dot: green ≤25ms, yellow ≤30ms, red >30ms */
+        if (controller->stats_quality_indicator) {
+            lv_color_t qc = totalMs <= 25.0f ? lv_palette_main(LV_PALETTE_GREEN)
+                          : totalMs <= 30.0f ? lv_palette_main(LV_PALETTE_YELLOW)
+                          : lv_palette_main(LV_PALETTE_RED);
+            lv_obj_set_style_text_color(controller->stats_quality_indicator, qc, 0);
+        }
+        return true;
+    }
+
     if (info->width > 0 && info->height > 0) {
         lv_label_set_text_fmt(controller->stats_items.decoder, "%s, %d\u00d7%d (%s)", vdec_stream_info.format, info->width,
                               info->height, SS4S_ModuleInfoGetId(app->ss4s.selection.video_module));
@@ -152,6 +212,7 @@ static void controller_dtor(lv_fragment_t *self) {
     if (current_controller == fragment) {
         current_controller = NULL;
     }
+    fragment->soft_kbd = NULL; /* Will be deleted with parent */
 }
 
 static bool on_event(lv_fragment_t *self, int code, void *userdata) {
@@ -159,6 +220,16 @@ static bool on_event(lv_fragment_t *self, int code, void *userdata) {
     streaming_controller_t *controller = (streaming_controller_t *) self;
     switch (code) {
         case USER_STREAM_CONNECTING: {
+#ifdef TARGET_WEBOS
+            /* Early display warmup before decoder is created - gives compositor time
+             * to switch to 120Hz before Starfish exported window is created. */
+            if (app_configuration->stream.fps >= 90) {
+                for (int i = 0; i < 5; i++) {
+                    SDL_PumpEvents();
+                    SDL_Delay(30);  /* ~150ms - before decoder/exported window created */
+                }
+            }
+#endif
             controller->progress = progress_dialog_create(locstr("Connecting..."));
             if (lv_obj_check_type(controller->progress->parent, &lv_msgbox_backdrop_class)) {
                 lv_obj_set_style_bg_opa(controller->progress->parent, LV_OPA_TRANSP, 0);
@@ -178,7 +249,11 @@ static bool on_event(lv_fragment_t *self, int code, void *userdata) {
             lv_obj_add_flag(controller->hint, LV_OBJ_FLAG_HIDDEN);
             if (app_configuration->show_stats_on_start) {
                 lv_obj_set_parent(controller->stats, lv_layer_top());
-                lv_obj_align(controller->stats, LV_ALIGN_TOP_RIGHT, -LV_DPX(20), LV_DPX(20));
+                if (app_configuration->show_stats_compact) {
+                    lv_obj_align(controller->stats, LV_ALIGN_TOP_LEFT, 0, 0);
+                } else {
+                    lv_obj_align(controller->stats, LV_ALIGN_TOP_RIGHT, -LV_DPX(20), LV_DPX(20));
+                }
                 lv_obj_add_state(controller->stats, LV_STATE_USER_1);
                 lv_obj_add_state(controller->stats_pin, LV_STATE_CHECKED);
                 overlay_pinned = true;
@@ -226,7 +301,7 @@ static void on_view_created(lv_fragment_t *self, lv_obj_t *view) {
     lv_obj_add_event_cb(controller->vmouse_btn, toggle_vmouse, LV_EVENT_CLICKED, self);
     lv_obj_add_event_cb(controller->base.obj, hide_overlay, LV_EVENT_CLICKED, self);
     lv_obj_add_event_cb(controller->overlay, overlay_key_cb, LV_EVENT_KEY, controller);
-    lv_obj_add_event_cb(controller->base.obj, hide_overlay, LV_EVENT_CANCEL, controller);
+    lv_obj_add_event_cb(controller->base.obj, on_cancel_key, LV_EVENT_CANCEL, controller);
 
     lv_obj_t *notice = lv_obj_create(lv_layer_sys());
     lv_obj_set_size(notice, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
@@ -288,12 +363,32 @@ static void suspend_streaming(lv_event_t *event) {
     session_interrupt(self->global->session, false, STREAMING_INTERRUPT_USER);
 }
 
+static void soft_keyboard_close_cb(void *userdata) {
+    streaming_controller_t *controller = userdata;
+    app_input_set_group(&controller->global->ui.input, controller->group);
+    session_screen_keyboard_closed(controller->global->session);
+    if (controller->soft_kbd) {
+        lv_obj_del(controller->soft_kbd);
+        controller->soft_kbd = NULL;
+    }
+}
+
 static void open_keyboard(lv_event_t *event) {
     streaming_controller_t *controller = lv_event_get_user_data(event);
     hide_overlay(event);
-    lv_disp_t *disp = lv_disp_get_default();
-    app_start_text_input(&controller->global->ui.input, 0, 0,
-                        lv_disp_get_hor_res(disp), lv_disp_get_ver_res(disp));
+    if (controller->soft_kbd) {
+        return; /* Already showing */
+    }
+    session_screen_keyboard_opened(controller->global->session);
+    controller->soft_kbd = soft_keyboard_create(
+        controller->detached_root,
+        controller->global->session,
+        soft_keyboard_close_cb,
+        controller);
+    lv_group_t *kbd_group = soft_keyboard_get_group(controller->soft_kbd);
+    if (kbd_group) {
+        app_input_set_group(&controller->global->ui.input, kbd_group);
+    }
 }
 
 static void toggle_vmouse(lv_event_t *event) {
@@ -319,6 +414,16 @@ bool show_overlay(streaming_controller_t *controller) {
 
     update_buttons_layout(controller);
     return true;
+}
+
+/* B/Back: close keyboard if shown, else hide overlay */
+static void on_cancel_key(lv_event_t *event) {
+    streaming_controller_t *controller = lv_event_get_user_data(event);
+    if (streaming_soft_keyboard_shown()) {
+        soft_keyboard_close_cb(controller);
+    } else {
+        hide_overlay(event);
+    }
 }
 
 static void hide_overlay(lv_event_t *event) {

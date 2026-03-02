@@ -461,3 +461,12 @@ void stream_input_handle_text(stream_input_t *input, const SDL_TextInputEvent *e
     }
     LiSendUtf8TextEvent(event->text, len);
 }
+
+void stream_input_send_key_event(stream_input_t *input, short keyCode, bool keyDown, char modifiers) {
+    if (input->view_only) {
+        return;
+    }
+    LiSendKeyboardEvent(0x8000 | keyCode,
+                       keyDown ? KEY_ACTION_DOWN : KEY_ACTION_UP,
+                       modifiers);
+}

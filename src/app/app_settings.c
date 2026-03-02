@@ -72,6 +72,7 @@ void settings_initialize(app_settings_t *config, char *conf_dir) {
     config->av1 = false;
     config->yuv422 = false;
     config->show_stats_on_start = false;
+    config->show_stats_compact = false;
     config->stick_deadzone = 7;
 
     config->conf_dir = conf_dir;
@@ -127,6 +128,7 @@ bool settings_save(app_settings_t *config) {
     ini_write_bool(fp, "av1", config->av1);
     ini_write_bool(fp, "yuv422", config->yuv422);
     ini_write_bool(fp, "show_stats_on_start", config->show_stats_on_start);
+    ini_write_bool(fp, "show_stats_compact", config->show_stats_compact);
 
     ini_write_section(fp, "audio");
     ini_write_string(fp, "backend", config->audio_backend);
@@ -222,6 +224,8 @@ static int settings_parse(app_settings_t *config, const char *section, const cha
         config->yuv422 = INI_IS_TRUE(value);
     } else if (INI_NAME_MATCH("show_stats_on_start")) {
         config->show_stats_on_start = INI_IS_TRUE(value);
+    } else if (INI_NAME_MATCH("show_stats_compact")) {
+        config->show_stats_compact = INI_IS_TRUE(value);
     } else if (INI_NAME_MATCH("hdr")) {
         config->hdr = INI_IS_TRUE(value);
     } else if (INI_NAME_MATCH("surround")) {
