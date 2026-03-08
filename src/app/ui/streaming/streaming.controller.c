@@ -8,6 +8,7 @@
 #include "ui/root.h"
 #include "ui/common/progress_dialog.h"
 #include "lvgl/lv_ext_utils.h"
+#include "lvgl/util/lv_app_utils.h"
 
 #include "util/user_event.h"
 #include "util/i18n.h"
@@ -26,6 +27,8 @@ static void toggle_vmouse(lv_event_t *event);
 static void hide_overlay(lv_event_t *event);
 
 static void on_cancel_key(lv_event_t *event);
+
+static void soft_keyboard_close_cb(void *userdata);
 
 static bool show_overlay(streaming_controller_t *controller);
 
@@ -46,6 +49,65 @@ static void overlay_key_cb(lv_event_t *e);
 static void update_buttons_layout(streaming_controller_t *controller);
 
 static void pin_toggle(lv_event_t *e);
+
+static void network_test_timer_cb(lv_timer_t *timer) {
+    streaming_controller_t *controller = (streaming_controller_t *) timer->user_data;
+    if (!controller) {
+        return;
+    }
+    if (controller->network_test_timer) {
+        lv_timer_del(controller->network_test_timer);
+        controller->network_test_timer = NULL;
+    }
+
+    const VIDEO_STATS *dst = &vdec_summary_stats;
+    const VIDEO_INFO *info = &vdec_stream_info;
+    (void) info;
+
+    uint32_t measuredBps = dst->currentBitrateKbps;
+    float dropPct = 0.0f;
+    if (dst->totalFrames > 0) {
+        dropPct = (float) dst->networkDroppedFrames * 100.0f / (float) dst->totalFrames;
+    }
+
+    char body[256];
+    if (measuredBps == 0) {
+        snprintf(body, sizeof(body),
+                 "%s\n\n%s",
+                 locstr("Network speed test could not gather enough data."),
+                 locstr("Check your connection and try again."));
+    } else {
+        /* Converter para Mbps e aplicar margem de segurança de ~20% */
+        float measuredMbps = (float) measuredBps / 1000000.0f;
+        float recommendedMbps = measuredMbps * 0.8f;
+        snprintf(body, sizeof(body),
+                 "%s\n\n"
+                 "%s: %.1f Mbps\n"
+                 "%s: %.1f Mbps\n"
+                 "%s: %u ms\n"
+                 "%s: %.2f%%",
+                 locstr("Network speed test finished."),
+                 locstr("Measured throughput"), measuredMbps,
+                 locstr("Recommended max bitrate"), recommendedMbps,
+                 locstr("Network RTT (avg)"), dst->rtt,
+                 locstr("Network frame drop"), dropPct);
+    }
+
+    static const char *btns[] = { "OK", "" };
+    lv_obj_t *dialog = lv_msgbox_create_i18n(NULL,
+                                             locstr("Network speed test"),
+                                             body,
+                                             btns,
+                                             false);
+    lv_obj_center(dialog);
+
+    /* Encerra o streaming após o teste */
+    if (controller->global && controller->global->session) {
+        session_interrupt(controller->global->session, true, STREAMING_INTERRUPT_USER);
+    }
+}
+
+static void network_test_timer_cb(lv_timer_t *timer);
 
 const lv_fragment_class_t streaming_controller_class = {
         .constructor_cb = constructor,
@@ -203,11 +265,18 @@ static void constructor(lv_fragment_t *self, void *args) {
 
     const streaming_scene_arg_t *arg = (streaming_scene_arg_t *) args;
     controller->global = arg->global;
+    controller->network_test = arg->network_test;
+    controller->network_test_duration = arg->network_test_duration ? arg->network_test_duration : 10;
+    controller->network_test_timer = NULL;
     app_session_begin(arg->global, &arg->uuid, &arg->app);
 }
 
 static void controller_dtor(lv_fragment_t *self) {
     streaming_controller_t *fragment = (streaming_controller_t *) self;
+    if (fragment->network_test_timer) {
+        lv_timer_del(fragment->network_test_timer);
+        fragment->network_test_timer = NULL;
+    }
     streaming_styles_reset(fragment);
     if (current_controller == fragment) {
         current_controller = NULL;
@@ -247,7 +316,9 @@ static bool on_event(lv_fragment_t *self, int code, void *userdata) {
             }
             lv_obj_add_flag(controller->overlay, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(controller->hint, LV_OBJ_FLAG_HIDDEN);
-            if (app_configuration->show_stats_on_start) {
+
+            bool show_stats = app_configuration->show_stats_on_start || controller->network_test;
+            if (show_stats) {
                 lv_obj_set_parent(controller->stats, lv_layer_top());
                 if (app_configuration->show_stats_compact) {
                     lv_obj_align(controller->stats, LV_ALIGN_TOP_LEFT, 0, 0);
@@ -258,6 +329,14 @@ static bool on_event(lv_fragment_t *self, int code, void *userdata) {
                 lv_obj_add_state(controller->stats_pin, LV_STATE_CHECKED);
                 overlay_pinned = true;
                 streaming_refresh_stats();
+            }
+
+            if (controller->network_test && controller->network_test_timer == NULL) {
+                uint32_t period_ms = (uint32_t) controller->network_test_duration * 1000U;
+                if (period_ms == 0) {
+                    period_ms = 10000U;
+                }
+                controller->network_test_timer = lv_timer_create(network_test_timer_cb, period_ms, controller);
             }
             break;
         }
@@ -278,6 +357,12 @@ static bool on_event(lv_fragment_t *self, int code, void *userdata) {
         }
         case USER_OPEN_OVERLAY: {
             show_overlay(controller);
+            return true;
+        }
+        case USER_CLOSE_SOFT_KEYBOARD: {
+            if (streaming_soft_keyboard_shown()) {
+                soft_keyboard_close_cb(controller);
+            }
             return true;
         }
         case USER_SIZE_CHANGED: {
@@ -366,6 +451,8 @@ static void suspend_streaming(lv_event_t *event) {
 static void soft_keyboard_close_cb(void *userdata) {
     streaming_controller_t *controller = userdata;
     app_input_set_group(&controller->global->ui.input, controller->group);
+    /* Restaurar grab/cursor para modo streaming */
+    app_set_mouse_grab(&controller->global->input, true);
     /* Guard against session already having been destroyed (e.g. Alt+F4 closed the game) */
     if (controller->global->session) {
         session_screen_keyboard_closed(controller->global->session);
@@ -392,6 +479,8 @@ static void open_keyboard(lv_event_t *event) {
     if (kbd_group) {
         app_input_set_group(&controller->global->ui.input, kbd_group);
     }
+    /* Mostrar cursor e liberar mouse para Magic Remote / ponteiro funcionarem */
+    app_set_mouse_grab(&controller->global->input, false);
 }
 
 static void toggle_vmouse(lv_event_t *event) {

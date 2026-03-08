@@ -2,10 +2,14 @@
 #include "app.h"
 
 #include "stream/session.h"
+#include "stream/input/session_input.h"
+#include "stream/input/vk.h"
 #include "platform/sdl/navkey_sdl.h"
 #include "ui/root.h"
+#include "ui/streaming/streaming.controller.h"
 
 #include "util/user_event.h"
+#include "util/bus.h"
 #include "lv_drv_sdl_key.h"
 #include "stream/session_events.h"
 
@@ -72,9 +76,42 @@ static void sdl_input_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
         }
         data->continue_reading = true;
     } else if (SDL_PeepEvents(&e, 1, SDL_GETEVENT, SDL_CONTROLLERAXISMOTION, SDL_CONTROLLERBUTTONUP) > 0) {
-        if (app->session != NULL && session_handle_input_event(app->session, &e)) {
+        bool handled_soft_kbd = false;
+        if (streaming_soft_keyboard_shown() && app->session != NULL
+            && (e.type == SDL_CONTROLLERBUTTONDOWN || e.type == SDL_CONTROLLERBUTTONUP)) {
+            bool pressed = (e.cbutton.state == SDL_PRESSED);
+            NAVKEY navkey = navkey_from_sdl(&e, &pressed);
+            stream_input_t *si = session_get_input(app->session);
+            short vk = 0;
+            bool close_kbd = false;
+            switch (navkey) {
+                case NAVKEY_ALTERNATIVE:  /* Y: Space */
+                    vk = VK_SPACE;
+                    break;
+                case NAVKEY_NEGATIVE:     /* X: Backspace */
+                    vk = VK_BACK;
+                    break;
+                case NAVKEY_START:        /* Start: Enter */
+                    vk = VK_RETURN;
+                    break;
+                case NAVKEY_CANCEL:       /* B: Escape + close */
+                    vk = VK_ESCAPE;
+                    if (pressed) close_kbd = true;
+                    break;
+                default:
+                    break;
+            }
+            if (vk != 0) {
+                stream_input_send_key_event(si, vk, pressed, 0);
+                if (close_kbd) {
+                    bus_pushevent(USER_CLOSE_SOFT_KEYBOARD, NULL, NULL);
+                }
+                handled_soft_kbd = true;
+            }
+        }
+        if (!handled_soft_kbd && app->session != NULL && session_handle_input_event(app->session, &e)) {
             state->state = LV_INDEV_STATE_RELEASED;
-        } else {
+        } else if (!handled_soft_kbd) {
             if (read_event(&e, state)) {
                 ui_set_input_mode(input, UI_INPUT_MODE_GAMEPAD);
             }

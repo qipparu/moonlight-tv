@@ -13,6 +13,7 @@
 #define USER_SHOW_HIDDEN_APPS (USER_EVENT_FLAG_FREE_DATA1 | USER_EVENT_FLAG_FREE_DATA2 | 160)
 
 #define USER_OPEN_OVERLAY 531
+#define USER_CLOSE_SOFT_KEYBOARD 532
 
 
 extern unsigned int app_userevent_remotebutton;

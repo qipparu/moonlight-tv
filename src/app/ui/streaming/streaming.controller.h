@@ -40,6 +40,10 @@ typedef struct {
     lv_style_t overlay_button_style_focused;
     lv_style_t overlay_button_label_style;
     lv_point_t button_points[5];
+    /* Network speed test mode */
+    bool network_test;
+    uint8_t network_test_duration; /* seconds */
+    lv_timer_t *network_test_timer;
 } streaming_controller_t;
 
 /* Usually references to SERVER_DATA and APP_LIST should not be kept, but in this struct, they will only be used once */
@@ -47,6 +51,8 @@ typedef struct {
     app_t *global;
     uuidstr_t uuid;
     APP_LIST app;
+    bool network_test;
+    uint8_t network_test_duration; /* seconds, 0 = default */
 } streaming_scene_arg_t;
 
 extern const lv_fragment_class_t streaming_controller_class;

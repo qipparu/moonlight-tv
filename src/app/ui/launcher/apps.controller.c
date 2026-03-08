@@ -102,6 +102,8 @@ static void app_detail_dialog(apps_fragment_t *fragment, const apploader_item_t 
 
 static void app_detail_click_cb(lv_event_t *event);
 
+static void launcher_network_test(apps_fragment_t *controller, const apploader_item_t *app);
+
 static void set_actions(apps_fragment_t *controller, const char **labels, const action_cb_t *callbacks);
 
 /**
@@ -724,6 +726,10 @@ static void open_context_menu(apps_fragment_t *fragment, appitem_viewholder_t *h
         lv_obj_add_flag(quit_btn, LV_OBJ_FLAG_EVENT_BUBBLE);
         lv_obj_set_user_data(quit_btn, launcher_quit_game);
     }
+
+    lv_obj_t *nettest_btn = lv_list_add_btn(content, NULL, locstr("Network speed test"));
+    lv_obj_add_flag(nettest_btn, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_set_user_data(nettest_btn, launcher_network_test);
     lv_obj_t *fav_btn = lv_list_add_btn(content, NULL, app->fav ? locstr("Unstar") : locstr("Star"));
     lv_obj_add_flag(fav_btn, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_set_user_data(fav_btn, launcher_toggle_fav);
@@ -739,6 +745,21 @@ static void open_context_menu(apps_fragment_t *fragment, appitem_viewholder_t *h
     lv_obj_t *cancel_btn = lv_list_add_btn(content, NULL, locstr("Cancel"));
     lv_obj_add_flag(cancel_btn, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_center(msgbox);
+}
+
+static void launcher_network_test(apps_fragment_t *controller, const apploader_item_t *app) {
+    LV_ASSERT(app->base.id != 0);
+    streaming_scene_arg_t args = {
+            .global = controller->global,
+            .uuid = controller->uuid,
+            .app = app->base,
+            .network_test = true,
+            .network_test_duration = 10,
+    };
+    app_ui_t *ui = &controller->global->ui;
+    lv_fragment_t *fragment = lv_fragment_create(&streaming_controller_class, &args);
+    lv_obj_t *const *container = lv_fragment_get_container(lv_fragment_manager_get_top(ui->fm));
+    lv_fragment_manager_push(ui->fm, fragment, container);
 }
 
 static void context_menu_cancel_cb(lv_event_t *e) {
@@ -760,6 +781,8 @@ static void context_menu_click_cb(lv_event_t *e) {
         launcher_quit_game(self);
     } else if (lv_obj_get_user_data(target) == launcher_launch_game) {
         launcher_launch_game(self, app);
+    } else if (lv_obj_get_user_data(target) == launcher_network_test) {
+        launcher_network_test(self, app);
     } else if (lv_obj_get_user_data(target) == launcher_toggle_fav) {
         launcher_toggle_fav(self, app);
     } else if (lv_obj_get_user_data(target) == launcher_toggle_hidden) {

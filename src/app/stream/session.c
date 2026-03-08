@@ -270,6 +270,17 @@ void session_config_init(app_t *app, session_config_t *config, const SERVER_DATA
     SS4S_VideoCapabilities video_cap = app->ss4s.video_cap;
     SS4S_AudioCapabilities audio_cap = app->ss4s.audio_cap;
 
+#if TARGET_WEBOS
+    // Preencher clientRefreshRateX100 com o refresh real do painel para
+    // permitir que o host faça frame pacing alinhado com a TV (por exemplo, 120 Hz).
+    if (config->stream.clientRefreshRateX100 <= 0) {
+        SDL_DisplayMode dm;
+        if (SDL_GetCurrentDisplayMode(0, &dm) == 0 && dm.refresh_rate > 0) {
+            config->stream.clientRefreshRateX100 = dm.refresh_rate * 100;
+        }
+    }
+#endif
+
     if (config->stream.bitrate < 0) {
         config->stream.bitrate = settings_optimal_bitrate(&video_cap, config->stream.width, config->stream.height,
                                                           config->stream.fps);

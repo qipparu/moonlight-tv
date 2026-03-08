@@ -74,8 +74,8 @@ static void on_keyboard_click(lv_event_t *e) {
     uint16_t btn_id = (btn_id_ptr != NULL) ? (uint16_t) *btn_id_ptr
                                            : lv_btnmatrix_get_selected_btn(lv_event_get_target(e));
     if (btn_id == LV_BTNMATRIX_BTN_NONE) return;
-    /* Row 4+ (indices 47+) report btn_id + 1 due to column misalignment between rows */
-    uint16_t vk_idx = (btn_id >= 47) ? btn_id - 1 : btn_id;
+    /* Row 3 (Caps/A-L/Enter) has one fewer button - btn_id aligns 1:1 with vks */
+    uint16_t vk_idx = btn_id;
     if (vk_idx >= (uint16_t) kd->vk_count) return;
     short vk = kd->vks[vk_idx];
     if (vk == 0) return;
@@ -131,11 +131,11 @@ lv_group_t *soft_keyboard_get_group(lv_obj_t *keyboard_container) {
 static const char *kbd_map[] = {
     "ESC","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12",
     "\n",
-    "`","1","2","3","4","5","6","7","8","9","0","-","=", LV_SYMBOL_BACKSPACE, "Ins","Home","PgUp",
+    "`","1","2","3","4","5","6","7","8","9","0","-","=", "Bksp", "Ins","Home","PgUp",
     "\n",
     "Tab","Q","W","E","R","T","Y","U","I","O","P","[","]","\\","Del","End","PgDn",
     "\n",
-    "Caps","A","S","D","F","G","H","J","K","L",";","'", LV_SYMBOL_NEW_LINE,
+    "Caps","A","S","D","F","G","H","J","K","L",";","'", "Enter",
     "\n",
     "Shift","Z","X","C","V","B","N","M",",",".","/","Shift", "\xE2\x86\x91", /* ↑ */
     "\n",
