@@ -1,6 +1,7 @@
 #include "app.h"
 
 #include "ui/root.h"
+#include "ui/streaming/streaming.controller.h"
 
 #include "stream/input/session_input.h"
 #include "stream/input/vk.h"
@@ -34,6 +35,10 @@ bool stream_input_webos_intercept_remote_keys(stream_input_t *input, const SDL_K
             return true;
         }
         case SDL_SCANCODE_WEBOS_BACK:
+            if (streaming_soft_keyboard_shown()) {
+                bus_pushevent(USER_CLOSE_SOFT_KEYBOARD, NULL, NULL);
+                return true;
+            }
             *keyCode = VK_ESCAPE /* SDL_SCANCODE_ESCAPE */;
             return false;
         case SDL_SCANCODE_WEBOS_CH_UP:
@@ -46,14 +51,11 @@ bool stream_input_webos_intercept_remote_keys(stream_input_t *input, const SDL_K
             if (input->view_only) {
                 return true;
             }
-            if (app_ui_get_input_mode(&app->ui.input) & UI_INPUT_MODE_POINTER_FLAG) {
-                LiSendMouseButtonEvent(event->type == SDL_KEYDOWN ? BUTTON_ACTION_PRESS : BUTTON_ACTION_RELEASE,
-                                       BUTTON_RIGHT);
+            if (event->state == SDL_PRESSED) {
+                bus_pushevent(USER_OPEN_SOFT_KEYBOARD, NULL, NULL);
                 return true;
-            } else {
-                *keyCode = VK_MENU;
-                return false;
             }
+            return true;
         case SDL_SCANCODE_WEBOS_RED:
             bus_pushevent(USER_OPEN_OVERLAY, NULL, NULL);
             return true;

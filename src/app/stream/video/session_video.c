@@ -43,7 +43,18 @@ DECODER_RENDERER_CALLBACKS ss4s_dec_callbacks = {
         .setup = vdec_delegate_setup,
         .cleanup = vdec_delegate_cleanup,
         .submitDecodeUnit = vdec_delegate_submit,
-        .capabilities = CAPABILITY_DIRECT_SUBMIT,
+        /*
+         * CAPABILITY_DIRECT_SUBMIT   – frames decoded on the calling thread; no queue overhead.
+         * CAPABILITY_REFERENCE_FRAME_INVALIDATION_HEVC – on error, only invalid frames are
+         *   dropped instead of requesting a full IDR, avoiding the large IDR spike that
+         *   causes latency spikes at high bitrates.
+         * CAPABILITY_SLICES_PER_FRAME(2) – hint the host encoder to split each frame into
+         *   2 slices so the A9 Gen4 HW decoder can start decoding the first slice while
+         *   the second is still arriving over the network (pipeline parallelism).
+         */
+        .capabilities = CAPABILITY_DIRECT_SUBMIT
+                      | CAPABILITY_REFERENCE_FRAME_INVALIDATION_HEVC
+                      | CAPABILITY_SLICES_PER_FRAME(2),
 };
 
 static const char *video_format_name(int videoFormat) {

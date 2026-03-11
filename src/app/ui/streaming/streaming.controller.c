@@ -25,6 +25,7 @@ static void open_keyboard(lv_event_t *event);
 static void toggle_vmouse(lv_event_t *event);
 
 static void hide_overlay(lv_event_t *event);
+static void hide_overlay_impl(streaming_controller_t *controller);
 
 static void on_cancel_key(lv_event_t *event);
 
@@ -146,18 +147,20 @@ bool streaming_refresh_stats() {
     const struct VIDEO_INFO *info = &vdec_stream_info;
 
     if (controller->stats_compact_label != NULL) {
-        /* Expanded one-line stats: codec, resolution, HDR, network/decoder latency, FPS, bitrate */
+        /* Format: 3840x2160 HDR 120/60 N 1/3ms H 4ms D 8ms TL 13ms FD 0.00% H.265 */
         float renderFps = dst->decodedFps;
+        int displayRate = 60;
 #if defined(TARGET_WEBOS)
-        int displayRate = 0;
         if (SDL_webOSGetRefreshRate(&displayRate) && displayRate > 0 && renderFps > (float) displayRate) {
             renderFps = (float) displayRate;
         }
 #else
         SDL_DisplayMode mode;
-        if (SDL_GetCurrentDisplayMode(0, &mode) == 0 && mode.refresh_rate > 0
-            && renderFps > (float) mode.refresh_rate) {
-            renderFps = (float) mode.refresh_rate;
+        if (SDL_GetCurrentDisplayMode(0, &mode) == 0 && mode.refresh_rate > 0) {
+            displayRate = mode.refresh_rate;
+            if (renderFps > (float) displayRate) {
+                renderFps = (float) displayRate;
+            }
         }
 #endif
         float netMs = (float) dst->rtt;
@@ -173,16 +176,19 @@ bool streaming_refresh_stats() {
             }
         }
         float totalMs = netMs + hostMs + decMs;
+        float fdPct = (dst->totalFrames > 0)
+            ? (float) dst->networkDroppedFrames / (float) dst->totalFrames * 100.0f
+            : 0.0f;
         const char *codec = vdec_stream_info.format ? vdec_stream_info.format : "-";
         int w = info->width > 0 ? info->width : 0;
         int h = info->height > 0 ? info->height : 0;
-        const char *hdr_str = app_configuration->hdr ? "HDR" : "-";
-        const char *ch = audio_stream_info.channels ? audio_stream_info.channels : "-";
-        const char *aud = (strcmp(ch, "Stereo") == 0) ? "S" : (strcmp(ch, "5.1ch") == 0) ? "5.1" : (strcmp(ch, "7.1ch") == 0) ? "7.1" : ch;
+        const char *hdr_str = app_configuration->hdr ? "HDR" : "SDR";
+        float bitrateMbps = (float) dst->currentBitrateKbps / 1000000.0f;
         lv_label_set_text_fmt(controller->stats_compact_label,
-                              "%s %dx%d %s | Net:%.0f Host:%.0f Dec:%.0f TL:%.0fms | %.0f FPS | %u Mbps | %s",
-                              codec, w, h, hdr_str, netMs, hostMs, decMs, totalMs, renderFps,
-                              dst->currentBitrateKbps / 1000000, aud);
+                              "%dx%d %s %.0f N %u/%ums H %.0fms D %.0fms TL %.0fms FD %.2f%% %s %.1f Mbps",
+                              w, h, hdr_str, renderFps,
+                              (unsigned) dst->rtt, (unsigned) dst->rttVariance,
+                              hostMs, decMs, totalMs, fdPct, codec, bitrateMbps);
         /* Quality dot: green ≤25ms, yellow ≤30ms, red >30ms */
         if (controller->stats_quality_indicator) {
             lv_color_t qc = totalMs <= 25.0f ? lv_palette_main(LV_PALETTE_GREEN)
@@ -365,6 +371,24 @@ static bool on_event(lv_fragment_t *self, int code, void *userdata) {
             }
             return true;
         }
+        case USER_OPEN_SOFT_KEYBOARD: {
+            if (controller->soft_kbd) {
+                return true;
+            }
+            hide_overlay_impl(controller);
+            session_screen_keyboard_opened(controller->global->session);
+            controller->soft_kbd = soft_keyboard_create(
+                controller->detached_root,
+                controller->global->session,
+                soft_keyboard_close_cb,
+                controller);
+            lv_group_t *kbd_group = soft_keyboard_get_group(controller->soft_kbd);
+            if (kbd_group) {
+                app_input_set_group(&controller->global->ui.input, kbd_group);
+            }
+            app_set_mouse_grab(&controller->global->input, false);
+            return true;
+        }
         case USER_SIZE_CHANGED: {
             update_buttons_layout(controller);
             streaming_overlay_resized(controller);
@@ -471,7 +495,7 @@ static void open_keyboard(lv_event_t *event) {
     }
     session_screen_keyboard_opened(controller->global->session);
     controller->soft_kbd = soft_keyboard_create(
-        controller->detached_root,
+        lv_layer_top(),
         controller->global->session,
         soft_keyboard_close_cb,
         controller);
@@ -518,16 +542,19 @@ static void on_cancel_key(lv_event_t *event) {
     }
 }
 
-static void hide_overlay(lv_event_t *event) {
-    streaming_controller_t *controller = (streaming_controller_t *) lv_event_get_user_data(event);
+static void hide_overlay_impl(streaming_controller_t *controller) {
     app_input_set_button_points(&controller->global->ui.input, NULL);
     lv_obj_add_flag(controller->base.obj, LV_OBJ_FLAG_HIDDEN);
     if (!overlay_showing) {
         return;
     }
     overlay_showing = false;
-    app_set_mouse_grab(&global->input, true);
+    app_set_mouse_grab(&controller->global->input, true);
     streaming_enter_fullscreen(controller->global->session);
+}
+
+static void hide_overlay(lv_event_t *event) {
+    hide_overlay_impl((streaming_controller_t *) lv_event_get_user_data(event));
 }
 
 static void overlay_key_cb(lv_event_t *e) {

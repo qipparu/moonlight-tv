@@ -67,9 +67,26 @@ static void sdl_input_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
 #if TARGET_WEBOS
         webos_key_input_mode(input, &e.key);
 #endif
-        if (app->session != NULL && session_handle_input_event(app->session, &e)) {
+        bool nav_to_lvgl = false;
+        bool back_closes_kbd = false;
+        if (streaming_soft_keyboard_shown() && app->session != NULL) {
+#if TARGET_WEBOS
+            if (e.key.keysym.scancode == SDL_SCANCODE_WEBOS_BACK) {
+                bus_pushevent(USER_CLOSE_SOFT_KEYBOARD, NULL, NULL);
+                back_closes_kbd = true;
+            } else
+#endif
+            {
+                SDL_Keycode sym = e.key.keysym.sym;
+                if (sym == SDLK_UP || sym == SDLK_DOWN || sym == SDLK_LEFT || sym == SDLK_RIGHT
+                    || sym == SDLK_RETURN || sym == SDLK_KP_ENTER) {
+                    nav_to_lvgl = read_keyboard(input, &e.key, state);
+                }
+            }
+        }
+        if (!nav_to_lvgl && !back_closes_kbd && app->session != NULL && session_handle_input_event(app->session, &e)) {
             state->state = LV_INDEV_STATE_RELEASED;
-        } else {
+        } else if (!nav_to_lvgl && !back_closes_kbd) {
             if (read_keyboard(input, &e.key, state)) {
                 ui_set_input_mode(input, UI_INPUT_MODE_KEY);
             }
@@ -85,6 +102,14 @@ static void sdl_input_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
             short vk = 0;
             bool close_kbd = false;
             switch (navkey) {
+                case NAVKEY_UP:
+                case NAVKEY_DOWN:
+                case NAVKEY_LEFT:
+                case NAVKEY_RIGHT:
+                case NAVKEY_CONFIRM:      /* A: select focused key */
+                    read_event(&e, state);
+                    handled_soft_kbd = true;
+                    break;
                 case NAVKEY_ALTERNATIVE:  /* Y: Space */
                     vk = VK_SPACE;
                     break;
@@ -251,6 +276,10 @@ static bool read_webos_key(app_ui_input_t *input, const SDL_KeyboardEvent *event
     app_t *app = input->ui->app;
     switch ((int) event->keysym.scancode) {
         case SDL_SCANCODE_WEBOS_BACK:
+            if (streaming_soft_keyboard_shown()) {
+                bus_pushevent(USER_CLOSE_SOFT_KEYBOARD, NULL, NULL);
+                return true;
+            }
             state->key = LV_KEY_ESC;
             return true;
         case SDL_SCANCODE_WEBOS_EXIT: {

@@ -14,6 +14,7 @@
 
 #define USER_OPEN_OVERLAY 531
 #define USER_CLOSE_SOFT_KEYBOARD 532
+#define USER_OPEN_SOFT_KEYBOARD 533
 
 
 extern unsigned int app_userevent_remotebutton;
