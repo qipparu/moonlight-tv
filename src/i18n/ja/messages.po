@@ -546,7 +546,7 @@ msgid "Hint: %s"
 msgstr ""
 
 #: src/app/ui/streaming/streaming.view.c:74
-msgid "Soft keyboard"
+msgid "Full keyboard"
 msgstr "キーボードを表示"
 
 #: src/app/ui/streaming/streaming.view.c:83

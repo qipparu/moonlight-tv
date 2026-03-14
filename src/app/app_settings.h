@@ -48,6 +48,8 @@ typedef struct app_settings_t {
     bool swap_abxy;
     bool syskey_capture;
     bool hdr;
+    bool hdr_hlg;   /* HLG instead of HDR10 (PQ) – for broadcast/streaming content */
+    bool hdr_10_plus; /* HDR10+ when host sends HDR10; may improve HLG-like display on LG */
     bool hevc;
     bool av1;
     bool yuv422;

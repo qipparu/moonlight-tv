@@ -93,6 +93,6 @@ ls -la "${PROJECT_ROOT}/dist/"/*.ipk 2>/dev/null || true
 echo ""
 echo "Para instalar na LG C1:"
 echo "  1. Instale o webosbrew e dev-manager na TV"
-echo "  2. Use: ares-install dist/com.limelight.webos_*_arm.ipk -d <IP_DA_TV>"
+echo "  2. Use: ares-install dist/com.aurora.gamestream_*_arm.ipk -d <IP_DA_TV>"
 echo "  Ou use o dev-manager-desktop para instalação fácil"
 echo ""

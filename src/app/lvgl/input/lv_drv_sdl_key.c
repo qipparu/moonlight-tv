@@ -86,7 +86,9 @@ static void sdl_input_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
         }
         if (!nav_to_lvgl && !back_closes_kbd && app->session != NULL && session_handle_input_event(app->session, &e)) {
             state->state = LV_INDEV_STATE_RELEASED;
-        } else if (!nav_to_lvgl && !back_closes_kbd) {
+        } else if (!nav_to_lvgl && !back_closes_kbd && !streaming_soft_keyboard_shown()) {
+            /* Avoid switching input mode while soft keyboard is open – the remote can send both
+             * key and gamepad events for the same press, causing KEY ↔ GAMEPAD oscillation. */
             if (read_keyboard(input, &e.key, state)) {
                 ui_set_input_mode(input, UI_INPUT_MODE_KEY);
             }
@@ -136,7 +138,9 @@ static void sdl_input_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
         }
         if (!handled_soft_kbd && app->session != NULL && session_handle_input_event(app->session, &e)) {
             state->state = LV_INDEV_STATE_RELEASED;
-        } else if (!handled_soft_kbd) {
+        } else if (!handled_soft_kbd && !streaming_soft_keyboard_shown()) {
+            /* Avoid switching input mode while soft keyboard is open – prevents KEY ↔ GAMEPAD
+             * loop when remote sends both key and gamepad events for combos like Alt+Q. */
             if (read_event(&e, state)) {
                 ui_set_input_mode(input, UI_INPUT_MODE_GAMEPAD);
             }

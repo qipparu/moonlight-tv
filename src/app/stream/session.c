@@ -29,7 +29,7 @@ static bool streaming_sops_supported(PDISPLAY_MODE modes, int w, int h, int fps)
 static void session_config_init(app_t *app, session_config_t *config, const SERVER_DATA *server,
                                 const CONFIGURATION *app_config);
 
-static void populate_hdr_info_vui(SS4S_VideoHDRInfo *info, const STREAM_CONFIGURATION *config);
+static void populate_hdr_info_vui(SS4S_VideoHDRInfo *info, const STREAM_CONFIGURATION *config, bool hdr_hlg);
 
 session_t *session_create(app_t *app, const CONFIGURATION *config, const SERVER_DATA *server, const APP_LIST *gs_app) {
     session_t *session = malloc(sizeof(session_t));
@@ -213,8 +213,9 @@ void streaming_set_hdr(session_t *session, bool hdr) {
                 .minDisplayMasteringLuminance = hdr_metadata.minDisplayLuminance,
                 .maxContentLightLevel = hdr_metadata.maxContentLightLevel,
                 .maxPicAverageLightLevel = hdr_metadata.maxFrameAverageLightLevel,
+                .preferHdr10Plus = session->config.hdr_10_plus,
         };
-        populate_hdr_info_vui(&info, &session->config.stream);
+        populate_hdr_info_vui(&info, &session->config.stream, session->config.hdr_hlg);
         SS4S_PlayerVideoSetHDRInfo(session->player, &info);
     } else {
         SS4S_VideoHDRInfo info = {
@@ -226,8 +227,9 @@ void streaming_set_hdr(session_t *session, bool hdr) {
                 .minDisplayMasteringLuminance = 50,
                 .maxContentLightLevel = 1000,
                 .maxPicAverageLightLevel = 400,
+                .preferHdr10Plus = session->config.hdr_10_plus,
         };
-        populate_hdr_info_vui(&info, &session->config.stream);
+        populate_hdr_info_vui(&info, &session->config.stream, session->config.hdr_hlg);
         SS4S_PlayerVideoSetHDRInfo(session->player, &info);
     }
 }
@@ -254,6 +256,8 @@ bool streaming_sops_supported(PDISPLAY_MODE modes, int w, int h, int fps) {
 void session_config_init(app_t *app, session_config_t *config, const SERVER_DATA *server,
                          const CONFIGURATION *app_config) {
     config->stream = app_config->stream;
+    config->hdr_hlg = app_config->hdr_hlg;
+    config->hdr_10_plus = app_config->hdr_10_plus;
     config->vmouse = app_config->virtual_mouse;
     config->hardware_mouse = app_config->hardware_mouse;
     config->local_audio = app_config->localaudio;
@@ -294,13 +298,8 @@ void session_config_init(app_t *app, session_config_t *config, const SERVER_DATA
             config->stream.supportedVideoFormats |= VIDEO_FORMAT_H265_MAIN10;
         }
     }
-    if (app_config->av1 && video_cap.codecs & SS4S_VIDEO_AV1) {
-        config->stream.supportedVideoFormats |= VIDEO_FORMAT_AV1_MAIN8;
-        if (app_config->hdr && video_cap.hdr) {
-            config->stream.supportedVideoFormats |= VIDEO_FORMAT_AV1_MAIN10;
-        }
-    }
-    config->stream.requestedChromaSubsampling = app_config->yuv422 ? 2 : 0;
+    /* AV1 disabled – decode latency too high on webOS (~8–12 ms vs ~1 ms for H.265) */
+    config->stream.requestedChromaSubsampling = 0; /* 4:2:2 disabled – does not work reliably */
     // If no video format is supported, default to H.264
     if (config->stream.supportedVideoFormats == 0) {
         config->stream.supportedVideoFormats = VIDEO_FORMAT_H264;
@@ -333,7 +332,7 @@ void session_config_init(app_t *app, session_config_t *config, const SERVER_DATA
     }
 #endif
     /* HDR 10-bit precisa de ~25% mais bitrate que SDR para mesma qualidade em cenas complexas */
-    if (app_config->hdr && (config->stream.supportedVideoFormats & (VIDEO_FORMAT_H265_MAIN10 | VIDEO_FORMAT_AV1_MAIN10))) {
+    if (app_config->hdr && (config->stream.supportedVideoFormats & VIDEO_FORMAT_H265_MAIN10)) {
         config->stream.bitrate = (int) ((int64_t) config->stream.bitrate * 125 / 100);
     }
     config->stream.encryptionFlags = ENCFLG_AUDIO;
@@ -345,8 +344,10 @@ void session_config_init(app_t *app, session_config_t *config, const SERVER_DATA
  *
  * @param info Info for SS4S_PlayerVideoSetHDRInfo
  * @param config Moonlight stream configuration
+ * @param hdr_hlg Use HLG (18) instead of PQ/HDR10 (16) when REC_2020
  */
-static void populate_hdr_info_vui(SS4S_VideoHDRInfo *info, const STREAM_CONFIGURATION *config) {
+static void populate_hdr_info_vui(SS4S_VideoHDRInfo *info, const STREAM_CONFIGURATION *config,
+                                  bool hdr_hlg) {
     switch (config->colorSpace) {
         case COLORSPACE_REC_601:
             info->colorPrimaries = 6 /* SMPTE 170M */;
@@ -360,7 +361,7 @@ static void populate_hdr_info_vui(SS4S_VideoHDRInfo *info, const STREAM_CONFIGUR
             break;
         case COLORSPACE_REC_2020: {
             info->colorPrimaries = 9 /* BT.2020 */;
-            info->transferCharacteristics = 16 /* SMPTE ST 2084 */;
+            info->transferCharacteristics = hdr_hlg ? 18 /* ARIB STD-B67 (HLG) */ : 16 /* SMPTE ST 2084 (PQ) */;
             info->matrixCoefficients = 9 /* BT.2020 NCL */;
             break;
         }

@@ -552,7 +552,7 @@ msgid "Hint: %s"
 msgstr "Hint: %s"
 
 #: src/app/ui/streaming/streaming.view.c:74
-msgid "Soft keyboard"
+msgid "Full keyboard"
 msgstr "Schermtoetsenbord"
 
 #: src/app/ui/streaming/streaming.view.c:83

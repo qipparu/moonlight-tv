@@ -547,7 +547,7 @@ msgid "Hint: %s"
 msgstr "Подсказка: %s"
 
 #: src/app/ui/streaming/streaming.view.c:74
-msgid "Soft keyboard"
+msgid "Full keyboard"
 msgstr "Виртуальная клавиатура"
 
 #: src/app/ui/streaming/streaming.view.c:83

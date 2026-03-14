@@ -16,7 +16,7 @@ else ()
         set(MOONLIGHT_VERSION "0.0.0")
     endif ()
 endif ()
-set(MOONLIGHT_VERSION "1.7.1")
+set(MOONLIGHT_VERSION "1.0.0")
 
 project(moonlight VERSION ${MOONLIGHT_VERSION} LANGUAGES C)
 
@@ -91,7 +91,7 @@ if (TARGET_WEBOS)
     set(THREADS_PTHREAD_ARG "2" CACHE STRING "Result from TRY_RUN" FORCE)
     set(OS_LINUX TRUE)
 
-    set(WEBOS_APPINFO_ID "com.limelight.webos")
+    set(WEBOS_APPINFO_ID "com.aurora.gamestream")
     set(CMAKE_INSTALL_RPATH "$ORIGIN/lib/backports:$ORIGIN/../lib/backports:$ORIGIN")
 elseif (TARGET_STEAMLINK)
     set(OS_LINUX TRUE)

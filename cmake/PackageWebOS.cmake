@@ -48,20 +48,20 @@ set(CPACK_THREADS 0)
 
 set(CPACK_STRIP_FILES FALSE)
 
-add_custom_target(webos-package-moonlight COMMAND cpack DEPENDS moonlight)
+add_custom_target(webos-package-aurora COMMAND cpack DEPENDS moonlight)
 
 if (NOT ENV{CI})
-    add_custom_target(webos-verify-moonlight COMMAND webosbrew-ipk-verify -S -d "${CPACK_PACKAGE_FILE_NAME}.ipk"
+    add_custom_target(webos-verify-aurora COMMAND webosbrew-ipk-verify -S -d "${CPACK_PACKAGE_FILE_NAME}.ipk"
             WORKING_DIRECTORY ${CPACK_PACKAGE_DIRECTORY}
-            DEPENDS webos-package-moonlight)
+            DEPENDS webos-package-aurora)
     if (ENV{ARES_DEVICE})
         set(ares_arguments "-d" $ENV{ARES_DEVICE})
     endif ()
-    add_custom_target(webos-install-moonlight COMMAND ares-install "${CPACK_PACKAGE_FILE_NAME}.ipk" ${ares_arguments}
+    add_custom_target(webos-install-aurora COMMAND ares-install "${CPACK_PACKAGE_FILE_NAME}.ipk" ${ares_arguments}
             WORKING_DIRECTORY ${CPACK_PACKAGE_DIRECTORY}
-            DEPENDS webos-package-moonlight)
-    add_custom_target(webos-launch-moonlight COMMAND ares-launch "${WEBOS_APPINFO_ID}" ${ares_arguments}
-            DEPENDS webos-install-moonlight)
+            DEPENDS webos-package-aurora)
+    add_custom_target(webos-launch-aurora COMMAND ares-launch "${WEBOS_APPINFO_ID}" ${ares_arguments}
+            DEPENDS webos-install-aurora)
 endif ()
 
 include(CPack)

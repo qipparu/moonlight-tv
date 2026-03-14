@@ -1,56 +1,63 @@
-# Moonlight TV
+# Aurora
 
-Moonlight TV is a community version of [Moonlight GameStream Client](https://moonlight-stream.org/), made for large
-screens. It works on LG webOS powered TVs, and Raspberry Pi running Raspbian.
+**Aurora** is a fork of [Moonlight TV](https://github.com/mariotaku/moonlight-tv), the community [Moonlight GameStream Client](https://moonlight-stream.org/) optimized for large screens. It runs on LG webOS TVs (C1–C5 and compatible) and Raspberry Pi with Raspbian.
 
-![Download Stats](https://img.shields.io/github/downloads/mariotaku/moonlight-tv/total)
+> **Notice:** This is an unofficial fork. All rights to the original project belong to [mariotaku/moonlight-tv](https://github.com/mariotaku/moonlight-tv) and the Moonlight community. Aurora is provided without warranty.
 
-# Why and for who this fork was created?
+## Why this fork?
 
-This fork was created because my TV LG C1 over wifi recognizes more than 200mbps of internet connection, so even if
-the official LG Documentation says that the TV can handle until 100mbps of decoding bitrate, it "could" be possible
-to use higher bitrates, in my case it worked, the image quality is very different from the limited 65mbps that i had 
-experienced.
-This fork is for people that have a LG OLED TV model between (C1...C5) that wants to test the TV capability and limits.
-You must to know that this is a fork, so you'll have to install manually by  the WebOS Dev Manager.
+It was created to push the limits of LG C1 (and similar OLEDs) in 4K 120fps HDR streaming. LG’s documentation suggests ~100 Mbps decode capability, but higher bitrates have worked on stable 5 GHz WiFi, with noticeable quality gains over the common 65 Mbps limit.
 
 ## Features
 
-* High performance streaming for webOS
-* UI optimized for large screen and remote controller
-* Supports up to 4 controllers
-* Easy to port to other OSes (Now runs on macOS, Arch, Debian, Raspbian and Windows)
-* New keyboard implementation
-* New status performance checker and more compact (Like Artemis lite mode)
-* Bitrate limit setted to 300mbps (Not compatible with all devices)
+- High-performance streaming on webOS (4K 120fps HDR)
+- UI optimized for large screens and remote control
+- Up to 4 controllers
+- Full keyboard overlay
+- Compact real-time performance indicator
+- **Max bitrate: 300 Mbps** (use sparingly; see warning below)
+- Experimental **HLG HDR** support (broadcast/streaming)
 
-## Tests and Results
+## ⚠️ Bitrate warning
 
-* LG C1:
-* 4k 120fps HDR H.265 180mbps of Bitrate
-* Got 22ms of total lattency
-* 3 ~ 7ms of network lattency (Over wifi 5ghz very near from the TV)
-* 8 ~ 10ms of decoding lattency
-* 5ms of host lattency
-* Tested on controllers:
-* Xbox Series S (Rumble recognized - low lattency)
-* 8bitdo Ultimate Wireless (D-Input mode, rumble not recognized - low lattency)
+The bitrate limit is set to **300 Mbps**. High bitrates stress the TV’s WiFi and may:
 
-* LG C5
-* 4k 120fps HDR H.265 300mbps of Bitrate
-* Got 16ms ~ 20ms over usb to ethernet adapter
-* 1ms ~3ms and 0 variation of network
-* 5 ~ 8ms host encoding
-* 8 ~ 10 ms decoding
+- Increase chipset temperature
+- Raise latency on unstable networks
+- Potentially accelerate hardware wear
 
-* How the Keyboard Works?
-* You can call the keyboard by Controller Red Button (Soft Keyboard), or Yellow Button calls immediatly the keyboard.
-* You can select combined commands as Alt + Tab, Alt + F4 or others two combined buttons.
-* Casse sensitive keyboard in case of Shift selected or Capslock button
-* To close the keyboard you can press the Back controller button or Gamepad B aswell
-* Gamepad commands was the same as the Windows Gamepad Keyboard (Y - Space, X backspace or Start Enter)
-<img width="2270" height="1702" alt="1 7 1 Keyboard" src="https://github.com/user-attachments/assets/43ad2dbf-a64a-4ffb-86a5-c0fbd0694c01" />
+**Use at your own risk.** Be sensible: start with moderate values (e.g. 80–150 Mbps) and only increase if the network and device are stable. See the reference table below.
 
-* Compact performance status
-<img width="2242" height="1682" alt="1 7 1 Performance Compact" src="https://github.com/user-attachments/assets/0d3cf07a-b048-4108-a44d-3c04fc469793" />
-resolution + hdr + real refresh rate + Network lattency/variation + Host lattency + Decoding Lattency + Total Lattency + Frame drops + Codec + bitrate
+## Recommended bitrate table (H.265, near-lossless quality)
+
+| Resolution | 60 fps | 120 fps | 144 fps |
+|------------|--------|---------|---------|
+| 1080p     | 40–60 Mbps | 80–100 Mbps | 100–120 Mbps |
+| 1440p     | 60–80 Mbps | 120–150 Mbps | 150–180 Mbps |
+| 4K        | 100–130 Mbps | 180–230 Mbps | 220–280 Mbps |
+
+*Values for H.265 (HEVC), HDR, near-visually-lossless quality. Above ~230 Mbps at 4K 120fps HDR, visual gains tend to be marginal.*
+
+## Fork adjustments
+
+- **HLG HDR** – Experimental option to use HLG instead of HDR10 (PQ), common in broadcast/streaming
+- **300 Mbps** – Raised bitrate limit; use responsibly
+- **1 slice per frame** – Reduces webOS decoder load
+- **4 MB buffer** – Fewer stalls with large IDRs at 4K 120fps
+
+## Documentation
+
+- **[Build and installation (webOS)](docs/BUILD_WEBOS.md)** – Developer mode, build, and manual installation
+
+## Tested (LG C1)
+
+- 4K 120fps HDR, H.265, ~180 Mbps
+- Total latency: ~22 ms (network 3–7 ms, decode 8–10 ms, host ~5 ms)
+- Controllers tested:
+  - Xbox Series S – rumble working
+  - 8BitDo Ultimate (Bluetooth, D-Input) – low latency, rumble not supported by TV
+
+## License and credits
+
+- Base project: [mariotaku/moonlight-tv](https://github.com/mariotaku/moonlight-tv)
+- Components: [moonlight-embedded](https://github.com/irtimmer/moonlight-embedded) (libgamestream and decoder)

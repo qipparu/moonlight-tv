@@ -509,8 +509,20 @@ msgid "%s decoder doesn't support HDR."
 msgstr "Decodificador %s não suporta HDR."
 
 #: src/app/ui/settings/panes/video.pane.c:163
-msgid "H265 or AV1 is required to use HDR."
-msgstr "H.265 ou AV1 é necessário para usar HDR."
+msgid "H265 is required to use HDR."
+msgstr "H.265 é necessário para usar HDR."
+
+msgid "HDR HLG (broadcast/streaming)"
+msgstr "HDR HLG (transmissão/streaming)"
+
+msgid "Use HLG instead of HDR10 when available. Common in LG TVs and streaming."
+msgstr "Usar HLG em vez de HDR10 quando disponível. Comum em TVs LG e streaming."
+
+msgid "HDR10+ (when host sends HDR10)"
+msgstr "HDR10+ (quando o host envia HDR10)"
+
+msgid "Signal HDR10+ to TV when host sends HDR10. May improve display on LG."
+msgstr "Sinalizar HDR10+ para a TV quando o host envia HDR10. Pode melhorar a exibição em LG."
 
 #: src/app/ui/settings/panes/video.pane.c:166
 msgid "HDR is only supported on certain games and when connecting to supported monitor."
@@ -569,9 +581,9 @@ msgstr "Desconectando..."
 msgid "Hint: %s"
 msgstr "Dica: %s"
 
-#: src/app/ui/streaming/streaming.view.c:74
-msgid "Soft keyboard"
-msgstr "Teclado virtual"
+#: src/app/ui/streaming/streaming.view.c:81
+msgid "Full keyboard"
+msgstr "Teclado completo"
 
 #: src/app/ui/streaming/streaming.view.c:83
 msgid "Virtual Mouse"

@@ -15,6 +15,8 @@ typedef struct video_pane_t {
 
     lv_obj_t *conflict_hint;
     lv_obj_t *hdr_checkbox;
+    lv_obj_t *hdr_hlg_checkbox;
+    lv_obj_t *hdr_10_plus_checkbox;
     lv_obj_t *hdr_hint;
 
     pref_dropdown_string_entry_t *vdec_entries;
@@ -103,29 +105,20 @@ static lv_obj_t *create_obj(lv_fragment_t *self, lv_obj_t *container) {
                               SS4S_ModuleInfoGetName(app->ss4s.selection.video_module));
     }
 
-    lv_obj_t *av1_checkbox = pref_checkbox(view, locstr("Use AV1 when possible (Experimental)"),
-                                           &app_configuration->av1, false);
-    lv_obj_t *av1_hint = pref_desc_label(view, NULL, false);
-    if (app->ss4s.video_cap.codecs & SS4S_VIDEO_AV1) {
-        lv_obj_clear_state(av1_checkbox, LV_STATE_DISABLED);
-        lv_label_set_text(av1_hint, locstr("AV1 usually has better graphics, and supports HDR. "
-                                           "However, it might be much slower than H265 or H264."));
-    } else {
-        lv_obj_add_state(av1_checkbox, LV_STATE_DISABLED);
-        lv_label_set_text_fmt(av1_hint, locstr("%s decoder doesn't support AV1 codec."),
-                              SS4S_ModuleInfoGetName(app->ss4s.selection.video_module));
-    }
-
-    lv_obj_t *yuv422_checkbox = pref_checkbox(view, locstr("4:2:2 chroma (H.265/AV1)"), &app_configuration->yuv422, false);
-    pref_desc_label(view, locstr("4:2:2 chroma subsampling for better text clarity. Requires H.265 or AV1."), false);
-    if (!(app->ss4s.video_cap.codecs & (SS4S_VIDEO_H265 | SS4S_VIDEO_AV1))) {
-        lv_obj_add_state(yuv422_checkbox, LV_STATE_DISABLED);
-    }
-
     lv_obj_t *hdr_checkbox = pref_checkbox(view, locstr("HDR"), &app_configuration->hdr, false);
     lv_obj_t *hdr_hint = pref_desc_label(view, NULL, false);
     controller->hdr_checkbox = hdr_checkbox;
     controller->hdr_hint = hdr_hint;
+
+    lv_obj_t *hdr_hlg_checkbox = pref_checkbox(view, locstr("HDR HLG (broadcast/streaming)"),
+                                               &app_configuration->hdr_hlg, false);
+    pref_desc_label(view, locstr("Use HLG instead of HDR10 when available. Common in LG TVs and streaming."), false);
+    controller->hdr_hlg_checkbox = hdr_hlg_checkbox;
+
+    lv_obj_t *hdr_10_plus_checkbox = pref_checkbox(view, locstr("HDR10+ (when host sends HDR10)"),
+                                                   &app_configuration->hdr_10_plus, false);
+    pref_desc_label(view, locstr("Signal HDR10+ to TV when host sends HDR10. May improve display on LG."), false);
+    controller->hdr_10_plus_checkbox = hdr_10_plus_checkbox;
 
     hdr_state_update(controller);
 
@@ -135,7 +128,7 @@ static lv_obj_t *create_obj(lv_fragment_t *self, lv_obj_t *container) {
 
     lv_obj_add_event_cb(vdec_dropdown, module_changed_cb, LV_EVENT_VALUE_CHANGED, controller);
     lv_obj_add_event_cb(hevc_checkbox, hdr_state_update_cb, LV_EVENT_VALUE_CHANGED, controller);
-    lv_obj_add_event_cb(av1_checkbox, hdr_state_update_cb, LV_EVENT_VALUE_CHANGED, controller);
+    lv_obj_add_event_cb(hdr_checkbox, hdr_state_update_cb, LV_EVENT_VALUE_CHANGED, controller);
     lv_obj_add_event_cb(hdr_more, hdr_more_click_cb, LV_EVENT_CLICKED, NULL);
 
     return view;
@@ -162,13 +155,19 @@ static void hdr_state_update(video_pane_t *controller) {
     app_t *app = controller->parent->app;
     if (app->ss4s.video_cap.hdr == 0) {
         lv_obj_add_state(controller->hdr_checkbox, LV_STATE_DISABLED);
+        lv_obj_add_state(controller->hdr_hlg_checkbox, LV_STATE_DISABLED);
+        lv_obj_add_state(controller->hdr_10_plus_checkbox, LV_STATE_DISABLED);
         lv_label_set_text_fmt(controller->hdr_hint, locstr("%s decoder doesn't support HDR."),
                               SS4S_ModuleInfoGetName(app->ss4s.selection.video_module));
-    } else if (!app_configuration->hevc && !app_configuration->av1) {
+    } else if (!app_configuration->hevc) {
         lv_obj_add_state(controller->hdr_checkbox, LV_STATE_DISABLED);
-        lv_label_set_text(controller->hdr_hint, locstr("H265 or AV1 is required to use HDR."));
+        lv_obj_add_state(controller->hdr_hlg_checkbox, LV_STATE_DISABLED);
+        lv_obj_add_state(controller->hdr_10_plus_checkbox, LV_STATE_DISABLED);
+        lv_label_set_text(controller->hdr_hint, locstr("H265 is required to use HDR."));
     } else {
         lv_obj_clear_state(controller->hdr_checkbox, LV_STATE_DISABLED);
+        lv_obj_clear_state(controller->hdr_hlg_checkbox, LV_STATE_DISABLED);
+        lv_obj_clear_state(controller->hdr_10_plus_checkbox, LV_STATE_DISABLED);
         lv_label_set_text(controller->hdr_hint, locstr("HDR is only supported on certain games and "
                                                        "when connecting to supported monitor."));
     }

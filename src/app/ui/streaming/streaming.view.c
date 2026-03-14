@@ -78,7 +78,7 @@ lv_obj_t *streaming_scene_create(lv_fragment_t *self, lv_obj_t *parent) {
     lv_obj_set_style_bg_color(kbd_btn, lv_palette_main(LV_PALETTE_BLUE), 0);
     lv_obj_t *kbd_label = lv_label_create(kbd_btn);
     lv_obj_add_style(kbd_label, &controller->overlay_button_label_style, 0);
-    lv_label_set_text(kbd_label, locstr("Soft keyboard"));
+    lv_label_set_text(kbd_label, locstr("Full keyboard"));
 
     lv_obj_t *vmouse_btn = lv_btn_create(actions);
     lv_obj_add_flag(vmouse_btn, LV_OBJ_FLAG_EVENT_BUBBLE);

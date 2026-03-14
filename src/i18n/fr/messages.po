@@ -553,7 +553,7 @@ msgid "Hint: %s"
 msgstr "Astuce : %s"
 
 #: src/app/ui/streaming/streaming.view.c:74
-msgid "Soft keyboard"
+msgid "Full keyboard"
 msgstr "Clavier virtuel"
 
 #: src/app/ui/streaming/streaming.view.c:83

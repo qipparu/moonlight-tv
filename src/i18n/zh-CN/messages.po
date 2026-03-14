@@ -554,7 +554,7 @@ msgid "Hint: %s"
 msgstr "提示：%s"
 
 #: src/app/ui/streaming/streaming.view.c:74
-msgid "Soft keyboard"
+msgid "Full keyboard"
 msgstr "显示软键盘"
 
 #: src/app/ui/streaming/streaming.view.c:83
