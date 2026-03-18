@@ -213,7 +213,6 @@ void streaming_set_hdr(session_t *session, bool hdr) {
                 .minDisplayMasteringLuminance = hdr_metadata.minDisplayLuminance,
                 .maxContentLightLevel = hdr_metadata.maxContentLightLevel,
                 .maxPicAverageLightLevel = hdr_metadata.maxFrameAverageLightLevel,
-                .preferHdr10Plus = session->config.hdr_10_plus,
         };
         populate_hdr_info_vui(&info, &session->config.stream, session->config.hdr_hlg);
         SS4S_PlayerVideoSetHDRInfo(session->player, &info);
@@ -227,7 +226,6 @@ void streaming_set_hdr(session_t *session, bool hdr) {
                 .minDisplayMasteringLuminance = 50,
                 .maxContentLightLevel = 1000,
                 .maxPicAverageLightLevel = 400,
-                .preferHdr10Plus = session->config.hdr_10_plus,
         };
         populate_hdr_info_vui(&info, &session->config.stream, session->config.hdr_hlg);
         SS4S_PlayerVideoSetHDRInfo(session->player, &info);
@@ -299,7 +297,7 @@ void session_config_init(app_t *app, session_config_t *config, const SERVER_DATA
         }
     }
     /* AV1 disabled – decode latency too high on webOS (~8–12 ms vs ~1 ms for H.265) */
-    config->stream.requestedChromaSubsampling = 0; /* 4:2:2 disabled – does not work reliably */
+    /* 4:2:2 disabled – does not work reliably */
     // If no video format is supported, default to H.264
     if (config->stream.supportedVideoFormats == 0) {
         config->stream.supportedVideoFormats = VIDEO_FORMAT_H264;
